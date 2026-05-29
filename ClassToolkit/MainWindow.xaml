@@ -1,0 +1,26 @@
+﻿<Window x:Class="ClassToolkit.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ClassToolkit"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="80" Width="80"
+        WindowStartupLocation="Manual"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        MouseLeftButtonDown="ClickBall"
+        MouseLeftButtonUp="LeftClickUp"
+        MouseMove="OnDragFloatBall"
+        Loaded="Window_Loaded">
+    
+    <Grid>
+        <Ellipse Fill="#EF121212"
+                 Stroke="White"
+                 StrokeThickness="1"/>
+        
+        <Button Content="Quit" Click="Quit" Width="40" Height="25"></Button>
+    </Grid>
+</Window>
