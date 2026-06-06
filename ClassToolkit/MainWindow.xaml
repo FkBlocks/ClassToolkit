@@ -3,14 +3,14 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:ClassToolkit"
         mc:Ignorable="d"
-        Title="MainWindow" Height="80" Width="80"
+        Title="MainWindow" Height="60" Width="60"
         WindowStartupLocation="Manual"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
         ResizeMode="NoResize"
+        ShowInTaskbar="False"
         MouseLeftButtonDown="ClickBall"
         MouseLeftButtonUp="LeftClickUp"
         MouseMove="OnDragFloatBall"
@@ -20,7 +20,20 @@
         <Ellipse Fill="#EF121212"
                  Stroke="White"
                  StrokeThickness="1"/>
+        <!-- 菜单容器 -->
+        <Border x:Name="Menu"
+                Width="80" Height="200"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Center"
+                Background="#EF121212"
+                RenderTransformOrigin="0.5,0.5"
+                Visibility="Collapsed">
+            <Border.RenderTransform>
+                <TranslateTransform X="-200"/>   <!-- 初始偏移左侧外 -->
+            </Border.RenderTransform>
+            
+            
+        </Border>
         
-        <Button Content="Quit" Click="Quit" Width="40" Height="25"></Button>
     </Grid>
 </Window>

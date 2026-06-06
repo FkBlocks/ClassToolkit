@@ -1,13 +1,9 @@
-﻿using System.Text;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using System.Windows.Interop;
 using System.Runtime.InteropServices;
 using System.Windows.Threading;
@@ -16,111 +12,495 @@ using System.Windows.Threading;
 namespace ClassToolkit;
 
 /// <summary>
-/// 悬浮球主窗口
+/// 悬浮球主窗口 —— 一个始终置顶的圆形浮动按钮，可拖拽移动、点击弹出菜单。
+///
+/// 核心交互：
+/// - 单击：弹出功能菜单（随机点名、倒计时、音量恢复、退出）
+/// - 拖拽：按住并移动鼠标，窗口跟随鼠标移动，不会超出屏幕边界
+/// - 置顶：通过 Win32 SetWindowPos 将窗口设为系统级最顶层 (TOPMOST)，并定时刷新
 /// </summary>
-public partial class MainWindow : Window
+public partial class MainWindow
 {
-    // 导入user32.dll，用于超级置顶
+    // ============================================================
+    //  Win32 API 声明
+    // ============================================================
+
+    /// <summary>设置窗口位置和层级（用于置顶）</summary>
     [DllImport("user32.dll")]
     static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
 
+    /// <summary>
+    /// 获取鼠标光标的屏幕坐标（物理像素）。
+    /// 之所以用 Win32 而不是 WPF 的 PointToScreen，是因为透明窗口 (AllowsTransparency=True)
+    /// 底层是分层窗口 (WS_EX_LAYERED)，WPF 的坐标转换在此模式下会漂移。
+    /// GetCursorPos 直接从系统获取，彻底绕过 WPF 坐标栈。
+    /// </summary>
+    [DllImport("user32.dll")]
+    static extern bool GetCursorPos(out POINT lpPoint);
+
+    /// <summary>Win32 POINT 结构体，int 类型（物理像素）</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    struct POINT { public int X; public int Y; }
+
+    // ============================================================
+    //  SetWindowPos 常量
+    // ============================================================
+
+    // ReSharper disable InconsistentNaming
+    /// <summary>HWND_TOPMOST: 置顶窗口（在所有非置顶窗口上方），传入 SetWindowPos 的 hWndInsertAfter 参数</summary>
     private static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
-    private const uint SWP_NOMOVE = 0x0002;
-    private const uint SWP_NOSIZE = 0x0001;
-    private const uint SWP_SHOWWINDOW = 0x0040;
-    
-    private bool isDragging = false;
-    private Point startPoint;
-    private readonly double dragThreshold = 5;
-    
+    /// <summary>SWP_NOMOVE: 保持当前位置，忽略 X/Y 参数</summary>
+    private const uint SWP_NO_MOVE = 0x0002;
+    /// <summary>SWP_NOSIZE: 保持当前大小，忽略 cx/cy 参数</summary>
+    private const uint SWP_NO_SIZE = 0x0001;
+    /// <summary>SWP_SHOWWINDOW: 显示窗口</summary>
+    private const uint SWP_SHOW_WINDOW = 0x0040;
+    // ReSharper restore InconsistentNaming
+
+    // ============================================================
+    //  拖拽相关字段
+    // ============================================================
+
+    /// <summary>是否正在拖拽中（鼠标按下且移动超过阈值后置为 true）</summary>
+    private bool _isDragging;
+
+    /// <summary>鼠标按下时，光标在悬浮球窗口内的相对位置，用于判断是否移动超过了拖拽阈值</summary>
+    private Point _startPoint;
+
+    /// <summary>拖拽开始时，鼠标光标的屏幕绝对坐标（WPF 设备无关像素，通过 GetCursorPos + DPI 转换得到）</summary>
+    private Point _dragStartMouseScreenPos;
+
+    /// <summary>拖拽开始时，悬浮球窗口的屏幕位置 (Left, Top)</summary>
+    private Point _dragStartWindowPos;
+
+    /// <summary>鼠标需要移动的最小像素数，超过此值才判定为拖拽（防止误触）</summary>
+    private readonly double _dragThreshold = 5;
+
+    // ============================================================
+    //  菜单相关字段
+    // ============================================================
+
+    /// <summary>右键/WPF Popup 菜单，显示在悬浮球旁边</summary>
+    private Popup _menuPopup;
+
+    /// <summary>菜单是否正在显示</summary>
+    private bool _isMenuOpen;
+
+    // ============================================================
+    //  构造函数 & 初始化
+    // ============================================================
+
     public MainWindow()
     {
-        InitializeComponent();
-        this.Loaded += (s, e) => MakeSuperTopmost();
+        InitializeComponent();      // 加载 XAML 布局
+        InitializeMenuPopup();      // 用代码构建 Popup 菜单
+        this.Loaded += (s, e) => MakeSuperTopmost();  // 窗口加载完成后立即置顶
     }
 
-    // 设置计时器，保证永远超级置顶，定时刷新一次
+    /// <summary>
+    /// 用纯代码构建弹出菜单（Popup 控件）。
+    /// 不用 XAML 是因为 Popup 需要独立于窗口的定位逻辑，
+    /// 用代码更灵活地控制 Placement 和 Offset。
+    /// </summary>
+    private void InitializeMenuPopup()
+    {
+        // 创建 Popup 容器
+        _menuPopup = new Popup
+        {
+            AllowsTransparency = true,          // 允许透明背景
+            Placement = PlacementMode.Absolute,  // 绝对定位（用屏幕坐标）
+            StaysOpen = false,                  // 点击外部自动关闭
+            Width = 150,
+            Height = 200
+        };
+
+        // 菜单面板：圆角边框 + 深色背景
+        var menuPanel = new Border
+        {
+            Background = new SolidColorBrush(Color.FromRgb(22, 22, 22)),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(8)
+        };
+
+        // 竖直排列的菜单项
+        var stackPanel = new StackPanel { Margin = new Thickness(10) };
+        stackPanel.Children.Add(CreateMenuItem("随机点名"));
+        stackPanel.Children.Add(CreateMenuItem("倒计时"));
+        stackPanel.Children.Add(CreateMenuItem("音量恢复"));
+        stackPanel.Children.Add(CreateMenuItem("退出"));
+
+        menuPanel.Child = stackPanel;
+        _menuPopup.Child = menuPanel;
+    }
+
+    /// <summary>
+    /// 创建一个菜单按钮，统一样式。
+    /// </summary>
+    /// <param name="text">按钮文字</param>
+    /// <returns>配置好的 Button 控件</returns>
+    private Button CreateMenuItem(string text)
+    {
+        Button btn = new Button
+        {
+            Content = text,
+            Height = 30,
+            Margin = new Thickness(0, 5, 0, 5),
+            Background = Brushes.Transparent,
+            Foreground = Brushes.White,
+            BorderBrush = Brushes.Transparent,
+            Cursor = Cursors.Hand,
+            HorizontalContentAlignment = HorizontalAlignment.Left,
+            FontSize = 14,
+            FontFamily = new FontFamily("Microsoft YaHei")
+        };
+        // 点击时传入文字，由 OnMenuItemClick 统一分发
+        btn.Click += (s, e) => OnMenuItemClick(text);
+        return btn;
+    }
+
+    // ============================================================
+    //  窗口置顶
+    // ============================================================
+
+    /// <summary>定时刷新置顶的计时器，每 500ms 触发一次</summary>
     private DispatcherTimer timer = new DispatcherTimer();
-    // 设置超级置顶
+
+    /// <summary>
+    /// 将悬浮球设为系统级"超级置顶"。
+    ///
+    /// HWND_TOPMOST 级别的窗口会始终渲染在所有非置顶窗口上方，
+    /// 包括其他应用的窗口。定时刷新是为了防止其他程序抢夺置顶层导致悬浮球被遮挡。
+    /// </summary>
     private void MakeSuperTopmost()
     {
-        // 置顶
+        // 获取 WPF 窗口底层的 Win32 句柄 (HWND)
         var hwnd = new WindowInteropHelper(this).Handle;
-        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
-        
-        // 定时刷新，保持置顶
+
+        // 立即置顶一次
+        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
+            SWP_NO_MOVE | SWP_NO_SIZE | SWP_SHOW_WINDOW);
+
+        // 每 500ms 重新置顶，防止被其他置顶窗口覆盖
         timer = new DispatcherTimer();
         timer.Interval = TimeSpan.FromMilliseconds(500);
-        timer.Tick += (s, e) => SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,  SWP_NOMOVE | SWP_NOSIZE);
+        timer.Tick += (s, e) => SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
+            SWP_NO_MOVE | SWP_NO_SIZE);
         timer.Start();
     }
-    
-    private void Quit(object sender, RoutedEventArgs e)
-    {
-        Application.Current.Shutdown();
-    }
-    
-    // 绘制圆形窗口
+
+    // ============================================================
+    //  窗口外观
+    // ============================================================
+
+    /// <summary>
+    /// 将方形窗口裁剪成圆形。
+    /// WPF 的 Clip 属性可以接受任意 Geometry 来定义窗口的可视区域，
+    /// 这里用一个圆形 EllipseGeometry 来裁剪，实现"圆形悬浮球"效果。
+    /// </summary>
     private void UpdateClipToCircle()
     {
-        // 圆形半径
         double radius = Math.Min(ActualWidth, ActualHeight) / 2;
         if (radius <= 0) return;
-        
+
         Point center = new Point(ActualWidth / 2, ActualHeight / 2);
         EllipseGeometry circle = new EllipseGeometry(center, radius, radius);
         Clip = circle;
     }
-    
-    // 显示
+
+    // ============================================================
+    //  窗口加载 & 初始定位
+    // ============================================================
+
+    /// <summary>
+    /// 窗口首次加载时：裁剪圆形 → 定位到屏幕右下角 → 边界保护。
+    /// WindowStartupLocation="Manual" 表示由代码手动指定位置。
+    /// </summary>
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
         UpdateClipToCircle();
-        // 获取屏幕宽高
+
         double screenWidth = SystemParameters.PrimaryScreenWidth;
         double screenHeight = SystemParameters.PrimaryScreenHeight;
-        
-        // 计算偏移
-        this.Left = screenWidth - this.ActualWidth - 10;    // 距右边80px
-        this.Top = screenHeight - this.ActualHeight - 330;  // 距底部400px
-        
-        // 防止越出边界
+
+        // 默认定位：右边距 10px，下边距 330px（避开任务栏区域）
+        this.Left = screenWidth - this.ActualWidth - 10;
+        this.Top = screenHeight - this.ActualHeight - 330;
+
+        // 防止越出边界（小屏幕或分辨率变更时）
         if (this.Left < 0) this.Left = 0;
         if (this.Top < 0) this.Top = 0;
     }
 
-    private void OnDragFloatBall(object sender, MouseEventArgs e)
-    {
-        if (e.LeftButton == MouseButtonState.Pressed && !isDragging)
-        {
-            Point currentPoint = e.GetPosition(this);
-            Vector delta = currentPoint - startPoint;
-            if (Math.Abs(delta.X) > dragThreshold || Math.Abs(delta.Y) > dragThreshold)
-            {
-                isDragging = true;
-                this.DragMove();
-            }
-        }
-    }
+    // ============================================================
+    //  拖拽交互（三个事件的协作）
+    //
+    //  整体流程：
+    //  1. MouseLeftButtonDown  → ClickBall()        记录起点，开始鼠标捕获
+    //  2. MouseMove            → OnDragFloatBall()  超过阈值后，实时移动窗口（边界钳制）
+    //  3. MouseLeftButtonUp    → LeftClickUp()      释放捕获，判断是"点击"还是"拖拽结束"
+    //
+    //  关键设计：手动拖拽替代 DragMove()
+    //  - WPF 内置的 DragMove() 无法限制窗口不超出屏幕
+    //  - 手动计算：拖拽起点 (窗口位置 + 鼠标屏幕位置) → MouseMove 时计算偏移量 → 钳制 → 写回 Left/Top
+    //  - 坐标获取：用 Win32 GetCursorPos 而不是 PointToScreen
+    //    因为透明窗口 (AllowsTransparency=True) 的底层是分层窗口，PointToScreen 会漂移
+    //  - 鼠标捕获：CaptureMouse() 确保鼠标移出窗口边界时仍能收到 MouseMove 事件
+    // ============================================================
 
+    /// <summary>
+    /// 鼠标按下事件 —— 记录拖拽的起点信息，开始鼠标捕获。
+    ///
+    /// 为什么需要三个坐标：
+    /// - _startPoint: 鼠标在窗口内的相对位置 → 判断是否超过拖拽阈值（区分"点击"和"拖拽"）
+    /// - _dragStartMouseScreenPos: 鼠标的屏幕绝对坐标 → 后续 MouseMove 时计算鼠标移动的总偏移量
+    /// - _dragStartWindowPos: 窗口当前的屏幕坐标 → 偏移量 + 窗口起点 = 新窗口位置
+    /// </summary>
     private void ClickBall(object sender, MouseButtonEventArgs e)
     {
-        startPoint = e.GetPosition(this);
-        isDragging = false;
+        // 鼠标在悬浮球内的相对位置
+        _startPoint = e.GetPosition(this);
+
+        // 用 Win32 GetCursorPos 获取鼠标屏幕坐标（不受透明窗口坐标漂移影响）
+        _dragStartMouseScreenPos = GetCursorScreenPos();
+
+        // 窗口当前屏幕坐标
+        _dragStartWindowPos = new Point(this.Left, this.Top);
+
+        // 重置拖拽状态
+        _isDragging = false;
+
+        // 捕获鼠标：即使鼠标移出窗口区域，MouseMove 和 MouseUp 事件仍会发送到这个窗口
+        CaptureMouse();
     }
 
+    /// <summary>
+    /// 鼠标移动事件 —— 判断是否进入拖拽状态，并在拖拽中实时更新窗口位置。
+    ///
+    /// 两个阶段：
+    /// 1. 未超过阈值：检查鼠标移动距离是否超过 _dragThreshold（5px），区分拖拽和误触
+    /// 2. 已进入拖拽：根据鼠标屏幕坐标的偏移量计算窗口新位置，并钳制在屏幕边界内
+    ///
+    /// 坐标计算公式：
+    ///   新位置 = 拖拽时窗口位置 + (当前鼠标屏幕位置 - 拖拽时鼠标屏幕位置)
+    ///   即窗口跟随鼠标位移相同的偏移量
+    /// </summary>
+    private void OnDragFloatBall(object sender, MouseEventArgs e)
+    {
+        // 如果鼠标左键没有按下（松开了），忽略
+        if (e.LeftButton != MouseButtonState.Pressed)
+            return;
 
+        // --- 阶段 1: 检查是否达到拖拽阈值 ---
+        if (!_isDragging)
+        {
+            Point currentPoint = e.GetPosition(this);
+            Vector delta = currentPoint - _startPoint;
+            if (Math.Abs(delta.X) > _dragThreshold || Math.Abs(delta.Y) > _dragThreshold)
+            {
+                _isDragging = true;  // 超过阈值，进入拖拽模式
+            }
+            else
+            {
+                return;  // 还没到阈值，不处理
+            }
+        }
+
+        // --- 阶段 2: 拖拽中，实时计算新位置 ---
+
+        // 获取鼠标当前的屏幕坐标（Win32 API，不受透明窗口干扰）
+        Point currentScreenPos = GetCursorScreenPos();
+
+        // 计算窗口新位置：窗口起点 + 鼠标偏移量
+        double newLeft = _dragStartWindowPos.X + (currentScreenPos.X - _dragStartMouseScreenPos.X);
+        double newTop = _dragStartWindowPos.Y + (currentScreenPos.Y - _dragStartMouseScreenPos.Y);
+
+        // 屏幕边界（WPF 设备无关像素）
+        double screenWidth = SystemParameters.PrimaryScreenWidth;
+        double screenHeight = SystemParameters.PrimaryScreenHeight;
+
+        // 四条边界钳制：窗口永远不会超出屏幕
+        // 左边界：窗口不能小于 0
+        if (newLeft < 0) newLeft = 0;
+        // 上边界：窗口不能小于 0
+        if (newTop < 0) newTop = 0;
+        // 右边界：窗口右边不能超出屏幕右边缘
+        if (newLeft + this.ActualWidth > screenWidth)
+            newLeft = screenWidth - this.ActualWidth;
+        // 下边界：窗口下边不能超出屏幕下边缘
+        if (newTop + this.ActualHeight > screenHeight)
+            newTop = screenHeight - this.ActualHeight;
+
+        // 应用新位置
+        this.Left = newLeft;
+        this.Top = newTop;
+    }
+
+    /// <summary>
+    /// 鼠标松开事件 —— 释放捕获，判断是"点击"还是"拖拽结束"。
+    ///
+    /// - 如果是点击（_isDragging == false）：弹出功能菜单
+    /// - 如果是拖拽结束（_isDragging == true）：什么都不做（窗口已在拖拽过程中跟随到位）
+    /// </summary>
     private void LeftClickUp(object sender, MouseButtonEventArgs e)
     {
-        if (!isDragging)
+        // 释放鼠标捕获，恢复正常事件路由
+        ReleaseMouseCapture();
+
+        if (!_isDragging)
         {
+            // 没拖拽 = 一次完整的点击 → 显示菜单
             ShowMenu();
         }
-        isDragging = false;
+        // 拖拽结束不需要额外处理，窗口位置已在 MouseMove 中实时更新
+
+        _isDragging = false;
     }
 
+    // ============================================================
+    //  坐标工具
+    // ============================================================
+
+    /// <summary>
+    /// 获取鼠标光标的屏幕坐标，返回 WPF 设备无关像素 (DIP)。
+    ///
+    /// 调用链：
+    ///   Win32 GetCursorPos (物理像素) → TransformFromDevice (DIP 转换) → 返回 Point
+    ///
+    /// 为什么不用 WPF 自带的 PointToScreen：
+    ///   当前窗口设置了 AllowsTransparency=True，WPF 底层创建的是"分层窗口"
+    ///   (WS_EX_LAYERED)。在这种窗口上调用 PointToScreen 会得到不准确的坐标，
+    ///   导致拖拽时窗口位置漂移（窗口和鼠标逐渐脱节）。
+    ///   GetCursorPos 直接从操作系统获取光标位置，不受 WPF 窗口类型影响。
+    /// </summary>
+    /// <returns>鼠标在屏幕上的位置（WPF 设备无关像素坐标）</returns>
+    private Point GetCursorScreenPos()
+    {
+        // 从 Win32 获取物理像素坐标
+        GetCursorPos(out POINT pt);
+
+        // 将物理像素转换为 WPF 的设备无关像素 (DIP)
+        // 例如在 150% 缩放屏幕上，物理像素 150 → DIP 100
+        var source = PresentationSource.FromVisual(this);
+        if (source?.CompositionTarget != null)
+        {
+            Matrix transform = source.CompositionTarget.TransformFromDevice;
+            return transform.Transform(new Point(pt.X, pt.Y));
+        }
+
+        // 降级处理：如果 PresentationSource 不可用（极少见），直接返回物理像素
+        return new Point(pt.X, pt.Y);
+    }
+
+    // ============================================================
+    //  菜单逻辑
+    // ============================================================
+
+    /// <summary>
+    /// 显示/切换弹出菜单。
+    ///
+    /// 定位策略：菜单显示在悬浮球左侧，垂直居中对齐，留 5px 间距。
+    /// 如果左侧空间不足（靠近屏幕左边缘），则贴在屏幕左侧 5px 处。
+    /// 如果菜单超出屏幕上下边界，也进行钳制。
+    /// </summary>
     private void ShowMenu()
     {
-        MessageBox.Show("Show Menu!");
+        // 已打开则关闭（点击切换行为）
+        if (_isMenuOpen)
+        {
+            CloseMenu();
+            return;
+        }
+
+        double ballLeft = this.Left;
+        double ballTop = this.Top;
+
+        // 菜单默认放在悬浮球左侧，垂直居中
+        double menuLeft = ballLeft - _menuPopup.Width - 5;
+        double menuTop = ballTop + (this.ActualHeight - _menuPopup.Height) / 2;
+
+        // 边界保护：不超出屏幕
+        if (menuLeft < 0) menuLeft = 5;
+        if (menuTop < 0) menuTop = 5;
+        if (menuTop + _menuPopup.Height > SystemParameters.PrimaryScreenHeight)
+            menuTop = SystemParameters.PrimaryScreenHeight - _menuPopup.Height - 5;
+
+        // Popup 用 HorizontalOffset/VerticalOffset 设置屏幕绝对坐标
+        _menuPopup.HorizontalOffset = menuLeft;
+        _menuPopup.VerticalOffset = menuTop;
+
+        _menuPopup.IsOpen = true;
+        _isMenuOpen = true;
+    }
+
+    /// <summary>关闭弹出菜单</summary>
+    private void CloseMenu()
+    {
+        if (_menuPopup != null)
+            _menuPopup.IsOpen = false;
+        _isMenuOpen = false;
+    }
+
+    // ============================================================
+    //  菜单项点击分发
+    // ============================================================
+
+    /// <summary>
+    /// 根据菜单文字执行对应功能。
+    /// </summary>
+    /// <param name="menuText">CreateMenuItem 传入的按钮文字</param>
+    private void OnMenuItemClick(string menuText)
+    {
+        switch (menuText)
+        {
+            case "随机点名":
+                LaunchRandomNameTool();
+                break;
+            case "退出":
+                Application.Current.Shutdown();
+                break;
+            // "倒计时" 和 "音量恢复" 暂未实现，预留扩展
+        }
+
+        // 点击菜单项后自动关闭菜单
+        CloseMenu();
+    }
+
+    // ============================================================
+    //  启动外部工具
+    // ============================================================
+
+    /// <summary>
+    /// 启动"随机点名"工具。
+    /// 工具路径: 程序目录/Tools/ClassToolkit.RandomName/ClassToolkit.RandomName.exe
+    /// </summary>
+    private void LaunchRandomNameTool()
+    {
+        string toolPath = System.IO.Path.Combine(
+            AppDomain.CurrentDomain.BaseDirectory,
+            "Tools",
+            "ClassToolkit.RandomName",
+            "ClassToolkit.RandomName.exe"
+        );
+
+        if (!System.IO.File.Exists(toolPath))
+        {
+            MessageBox.Show("未找到工具");
+            return;
+        }
+
+        try
+        {
+            Process.Start(toolPath);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(ex.Message);
+        }
+    }
+
+    /// <summary>退出应用程序（未使用，保留备用）</summary>
+    private void Quit(object sender, RoutedEventArgs e)
+    {
+        Application.Current.Shutdown();
     }
 }

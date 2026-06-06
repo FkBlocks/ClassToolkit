@@ -7,5 +7,91 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <UseWPF>true</UseWPF>
     </PropertyGroup>
+    
+    <ItemGroup>
+        <!--
+          ReferenceOutputAssembly=false: 不作为程序集引用（只构建不链接）
+          Private=false:                  不将输出文件复制到主项目的输出目录，由下方 Target 手动复制到 Tools 子目录
+        -->
+        <ProjectReference Include="..\ClassToolkit.RandomName\ClassToolkit.RandomName.csproj">
+            <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+            <Private>false</Private>
+        </ProjectReference>
+        <ProjectReference Include="..\ClassToolkit.CountDown\ClassToolkit.CountDown.csproj">
+            <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+            <Private>false</Private>
+        </ProjectReference>
+        <ProjectReference Include="..\ClassToolkit.VolumeRecovery\ClassToolkit.VolumeRecovery.csproj">
+            <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+            <Private>false</Private>
+        </ProjectReference>
+    </ItemGroup>
 
+    <!-- 开发时 (Build)：将 RandomName 编译输出复制到 Tools\ClassToolkit.RandomName 子目录 -->
+    <Target Name="CopyRandomNameTool" AfterTargets="Build">
+        <ItemGroup>
+            <RandomNameOutput Include="..\ClassToolkit.RandomName\bin\$(Configuration)\net10.0-windows\*.*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(RandomNameOutput)"
+              DestinationFolder="$(OutDir)Tools\ClassToolkit.RandomName"
+              SkipUnchangedFiles="true" />
+    </Target>
+
+    <!-- 开发时 (Build)：将 CountDown 编译输出复制到 Tools\ClassToolkit.CountDown 子目录 -->
+    <Target Name="CopyCountDownTool" AfterTargets="Build">
+        <ItemGroup>
+            <CountDownOutput Include="..\ClassToolkit.CountDown\bin\$(Configuration)\net10.0-windows\*.*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(CountDownOutput)"
+              DestinationFolder="$(OutDir)Tools\ClassToolkit.CountDown"
+              SkipUnchangedFiles="true" />
+    </Target>
+
+    <!-- 发布时 (Publish)：将 CountDown 输出复制到发布目录的 Tools 子目录，并清理 SDK 误复制到根目录的残留 -->
+    <Target Name="CopyCountDownToolForPublish" AfterTargets="Publish">
+        <ItemGroup>
+            <CountDownOutput Include="..\ClassToolkit.CountDown\bin\$(Configuration)\net10.0-windows\*.*" />
+            <CountDownResidue Include="$(PublishDir)ClassToolkit.CountDown.*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(CountDownOutput)"
+              DestinationFolder="$(PublishDir)Tools\ClassToolkit.CountDown"
+              SkipUnchangedFiles="true" />
+        <Delete Files="@(CountDownResidue)" />
+    </Target>
+
+    <!-- 开发时 (Build)：将 VolumeRecovery 编译输出复制到 Tools\ClassToolkit.VolumeRecovery 子目录 -->
+    <Target Name="CopyVolumeRecoveryTool" AfterTargets="Build">
+        <ItemGroup>
+            <VolumeRecoveryOutput Include="..\ClassToolkit.VolumeRecovery\bin\$(Configuration)\net10.0-windows\*.*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(VolumeRecoveryOutput)"
+              DestinationFolder="$(OutDir)Tools\ClassToolkit.VolumeRecovery"
+              SkipUnchangedFiles="true" />
+    </Target>
+
+    <!-- 发布时 (Publish)：将 VolumeRecovery 输出复制到发布目录的 Tools 子目录，并清理 SDK 误复制到根目录的残留 -->
+    <Target Name="CopyVolumeRecoveryToolForPublish" AfterTargets="Publish">
+        <ItemGroup>
+            <VolumeRecoveryOutput Include="..\ClassToolkit.VolumeRecovery\bin\$(Configuration)\net10.0-windows\*.*" />
+            <VolumeRecoveryResidue Include="$(PublishDir)ClassToolkit.VolumeRecovery.*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(VolumeRecoveryOutput)"
+              DestinationFolder="$(PublishDir)Tools\ClassToolkit.VolumeRecovery"
+              SkipUnchangedFiles="true" />
+        <Delete Files="@(VolumeRecoveryResidue)" />
+    </Target>
+
+    <!-- 发布时 (Publish)：将 RandomName 输出复制到发布目录的 Tools 子目录，并清理 SDK 误复制到根目录的残留 -->
+    <Target Name="CopyRandomNameToolForPublish" AfterTargets="Publish">
+        <ItemGroup>
+            <RandomNameOutput Include="..\ClassToolkit.RandomName\bin\$(Configuration)\net10.0-windows\*.*" />
+            <!-- SDK 可能无视 Private=false 仍将依赖复制到发布根目录 -->
+            <RandomNameResidue Include="$(PublishDir)ClassToolkit.RandomName.*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(RandomNameOutput)"
+              DestinationFolder="$(PublishDir)Tools\ClassToolkit.RandomName"
+              SkipUnchangedFiles="true" />
+        <!-- 删除被 SDK 误复制到发布根目录的文件（正确的文件在 Tools 子目录中） -->
+        <Delete Files="@(RandomNameResidue)" />
+    </Target>
 </Project>

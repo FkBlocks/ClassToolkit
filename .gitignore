@@ -1,6 +1,43 @@
-bin/
-obj/
-/packages/
-riderModule.iml
-/_ReSharper.Caches/
+## Ignore Visual Studio temporary files, build results, etc.
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio
+.vs/
+*.user
+*.userosscache
+*.suo
+*.cache
+*.ilk
+*.pdb
+
+# ReSharper
+_ReSharper*/
+*.DotSettings.user
+
+# Rider
 .idea/
+*.sln.iml
+
+# NuGet
+**/packages/*
+*.nupkg
+
+# Others
+Thumbs.db
+Desktop.ini
+.vscode/
