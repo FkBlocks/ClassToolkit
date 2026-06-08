@@ -24,7 +24,6 @@ public partial class MainWindow
     /// 获取鼠标光标的屏幕坐标（物理像素）。
     /// GetCursorPos 直接从系统获取，彻底绕过 WPF 坐标栈。
     /// </summary>
-    [DllImport("user32.dll")]
     static extern bool GetCursorPos(out POINT lpPoint);
 
     /// <summary>Win32 POINT 结构体，int 类型（物理像素）</summary>
