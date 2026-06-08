@@ -24,6 +24,7 @@ public partial class MainWindow
     /// 获取鼠标光标的屏幕坐标（物理像素）。
     /// GetCursorPos 直接从系统获取，彻底绕过 WPF 坐标栈。
     /// </summary>
+    [DllImport("user32.dll")]
     static extern bool GetCursorPos(out POINT lpPoint);
 
     /// <summary>Win32 POINT 结构体，int 类型（物理像素）</summary>
@@ -52,7 +53,7 @@ public partial class MainWindow
     /// <summary>鼠标需要移动的最小像素数，超过此值才判定为拖拽（防止误触）</summary>
     private readonly double _dragThreshold = 5;
     /// <summary>右键/WPF Popup 菜单，显示在悬浮球旁边</summary>
-    private Popup _menuPopup;
+    private Popup _menuPopup = null!;
     /// <summary>菜单是否正在显示</summary>
     private bool _isMenuOpen;
     
