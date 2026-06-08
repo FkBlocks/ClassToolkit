@@ -9,9 +9,13 @@
     </PropertyGroup>
     
     <ItemGroup>
+        <!-- Core 共享库：正常引用，主程序输出目录保留 Core.dll（作为各工具的运行时共享副本） -->
+        <ProjectReference Include="..\ClassToolkit.Core\ClassToolkit.Core.csproj" />
+
         <!--
-          ReferenceOutputAssembly=false: 不作为程序集引用（只构建不链接）
-          Private=false:                  不将输出文件复制到主项目的输出目录，由下方 Target 手动复制到 Tools 子目录
+          工具插件引用：
+            ReferenceOutputAssembly=false: 不作为程序集引用（只构建不链接）
+            Private=false:                不将输出文件复制到主项目的输出目录，由下方 Target 手动复制到 Tools 子目录
         -->
         <ProjectReference Include="..\ClassToolkit.RandomName\ClassToolkit.RandomName.csproj">
             <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
@@ -22,6 +26,10 @@
             <Private>false</Private>
         </ProjectReference>
         <ProjectReference Include="..\ClassToolkit.VolumeRecovery\ClassToolkit.VolumeRecovery.csproj">
+            <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+            <Private>false</Private>
+        </ProjectReference>
+        <ProjectReference Include="..\ClassToolkit.Settings\ClassToolkit.Settings.csproj">
             <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
             <Private>false</Private>
         </ProjectReference>
@@ -47,6 +55,26 @@
               SkipUnchangedFiles="true" />
     </Target>
 
+    <!-- 开发时 (Build)：将 VolumeRecovery 编译输出复制到 Tools\ClassToolkit.VolumeRecovery 子目录 -->
+    <Target Name="CopyVolumeRecoveryTool" AfterTargets="Build">
+        <ItemGroup>
+            <VolumeRecoveryOutput Include="..\ClassToolkit.VolumeRecovery\bin\$(Configuration)\net10.0-windows\*.*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(VolumeRecoveryOutput)"
+              DestinationFolder="$(OutDir)Tools\ClassToolkit.VolumeRecovery"
+              SkipUnchangedFiles="true" />
+    </Target>
+
+    <!-- 开发时 (Build)：将 Settings 编译输出复制到 Tools\ClassToolkit.Settings 子目录 -->
+    <Target Name="CopySettings" AfterTargets="Build">
+        <ItemGroup>
+            <SettingsOutput Include="..\ClassToolkit.Settings\bin\$(Configuration)\net10.0-windows\*.*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(SettingsOutput)"
+              DestinationFolder="$(OutDir)Tools\ClassToolkit.Settings"
+              SkipUnchangedFiles="true" />
+    </Target>
+
     <!-- 发布时 (Publish)：将 CountDown 输出复制到发布目录的 Tools 子目录，并清理 SDK 误复制到根目录的残留 -->
     <Target Name="CopyCountDownToolForPublish" AfterTargets="Publish">
         <ItemGroup>
@@ -58,16 +86,7 @@
               SkipUnchangedFiles="true" />
         <Delete Files="@(CountDownResidue)" />
     </Target>
-
-    <!-- 开发时 (Build)：将 VolumeRecovery 编译输出复制到 Tools\ClassToolkit.VolumeRecovery 子目录 -->
-    <Target Name="CopyVolumeRecoveryTool" AfterTargets="Build">
-        <ItemGroup>
-            <VolumeRecoveryOutput Include="..\ClassToolkit.VolumeRecovery\bin\$(Configuration)\net10.0-windows\*.*" />
-        </ItemGroup>
-        <Copy SourceFiles="@(VolumeRecoveryOutput)"
-              DestinationFolder="$(OutDir)Tools\ClassToolkit.VolumeRecovery"
-              SkipUnchangedFiles="true" />
-    </Target>
+    
 
     <!-- 发布时 (Publish)：将 VolumeRecovery 输出复制到发布目录的 Tools 子目录，并清理 SDK 误复制到根目录的残留 -->
     <Target Name="CopyVolumeRecoveryToolForPublish" AfterTargets="Publish">
@@ -94,4 +113,19 @@
         <!-- 删除被 SDK 误复制到发布根目录的文件（正确的文件在 Tools 子目录中） -->
         <Delete Files="@(RandomNameResidue)" />
     </Target>
+    
+    <!-- 发布时 (Publish)：将 Settings 输出复制到发布目录的 Tools 子目录，并清理 SDK 误复制到根目录的残留 -->
+    <Target Name="CopySettingsForPublish" AfterTargets="Publish">
+        <ItemGroup>
+            <SettingsOutput Include="..\ClassToolkit.Settings\bin\$(Configuration)\net10.0-windows\*.*" />
+            <!-- SDK 可能无视 Private=false 仍将依赖复制到发布根目录 -->
+            <SettingsResidue Include="$(PublishDir)ClassToolkit.Settings.*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(SettingsOutput)"
+              DestinationFolder="$(PublishDir)Tools\ClassToolkit.Settings"
+              SkipUnchangedFiles="true" />
+        <!-- 删除被 SDK 误复制到发布根目录的文件（正确的文件在 Tools 子目录中） -->
+        <Delete Files="@(SettingsResidue)" />
+    </Target>
+
 </Project>

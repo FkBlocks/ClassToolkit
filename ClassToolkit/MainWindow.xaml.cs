@@ -13,26 +13,15 @@ namespace ClassToolkit;
 
 /// <summary>
 /// 悬浮球主窗口 —— 一个始终置顶的圆形浮动按钮，可拖拽移动、点击弹出菜单。
-///
-/// 核心交互：
-/// - 单击：弹出功能菜单（随机点名、倒计时、音量恢复、退出）
-/// - 拖拽：按住并移动鼠标，窗口跟随鼠标移动，不会超出屏幕边界
-/// - 置顶：通过 Win32 SetWindowPos 将窗口设为系统级最顶层 (TOPMOST)，并定时刷新
 /// </summary>
 public partial class MainWindow
 {
-    // ============================================================
-    //  Win32 API 声明
-    // ============================================================
-
     /// <summary>设置窗口位置和层级（用于置顶）</summary>
     [DllImport("user32.dll")]
     static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
 
     /// <summary>
     /// 获取鼠标光标的屏幕坐标（物理像素）。
-    /// 之所以用 Win32 而不是 WPF 的 PointToScreen，是因为透明窗口 (AllowsTransparency=True)
-    /// 底层是分层窗口 (WS_EX_LAYERED)，WPF 的坐标转换在此模式下会漂移。
     /// GetCursorPos 直接从系统获取，彻底绕过 WPF 坐标栈。
     /// </summary>
     [DllImport("user32.dll")]
@@ -41,55 +30,33 @@ public partial class MainWindow
     /// <summary>Win32 POINT 结构体，int 类型（物理像素）</summary>
     [StructLayout(LayoutKind.Sequential)]
     struct POINT { public int X; public int Y; }
-
-    // ============================================================
-    //  SetWindowPos 常量
-    // ============================================================
-
+    
     // ReSharper disable InconsistentNaming
     /// <summary>HWND_TOPMOST: 置顶窗口（在所有非置顶窗口上方），传入 SetWindowPos 的 hWndInsertAfter 参数</summary>
     private static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
-    /// <summary>SWP_NOMOVE: 保持当前位置，忽略 X/Y 参数</summary>
+    /// <summary>SWP_NO_MOVE: 保持当前位置，忽略 X/Y 参数</summary>
     private const uint SWP_NO_MOVE = 0x0002;
-    /// <summary>SWP_NOSIZE: 保持当前大小，忽略 cx/cy 参数</summary>
+    /// <summary>SWP_NO_SIZE: 保持当前大小，忽略 cx/cy 参数</summary>
     private const uint SWP_NO_SIZE = 0x0001;
-    /// <summary>SWP_SHOWWINDOW: 显示窗口</summary>
+    /// <summary>SWP_SHOW_WINDOW: 显示窗口</summary>
     private const uint SWP_SHOW_WINDOW = 0x0040;
-    // ReSharper restore InconsistentNaming
-
-    // ============================================================
-    //  拖拽相关字段
-    // ============================================================
-
+    
+    
     /// <summary>是否正在拖拽中（鼠标按下且移动超过阈值后置为 true）</summary>
     private bool _isDragging;
-
     /// <summary>鼠标按下时，光标在悬浮球窗口内的相对位置，用于判断是否移动超过了拖拽阈值</summary>
     private Point _startPoint;
-
     /// <summary>拖拽开始时，鼠标光标的屏幕绝对坐标（WPF 设备无关像素，通过 GetCursorPos + DPI 转换得到）</summary>
     private Point _dragStartMouseScreenPos;
-
     /// <summary>拖拽开始时，悬浮球窗口的屏幕位置 (Left, Top)</summary>
     private Point _dragStartWindowPos;
-
     /// <summary>鼠标需要移动的最小像素数，超过此值才判定为拖拽（防止误触）</summary>
     private readonly double _dragThreshold = 5;
-
-    // ============================================================
-    //  菜单相关字段
-    // ============================================================
-
     /// <summary>右键/WPF Popup 菜单，显示在悬浮球旁边</summary>
     private Popup _menuPopup;
-
     /// <summary>菜单是否正在显示</summary>
     private bool _isMenuOpen;
-
-    // ============================================================
-    //  构造函数 & 初始化
-    // ============================================================
-
+    
     public MainWindow()
     {
         InitializeComponent();      // 加载 XAML 布局
@@ -110,8 +77,8 @@ public partial class MainWindow
             AllowsTransparency = true,          // 允许透明背景
             Placement = PlacementMode.Absolute,  // 绝对定位（用屏幕坐标）
             StaysOpen = false,                  // 点击外部自动关闭
-            Width = 150,
-            Height = 200
+            Width = 130,
+            Height = 235
         };
 
         // 菜单面板：圆角边框 + 深色背景
@@ -127,6 +94,7 @@ public partial class MainWindow
         stackPanel.Children.Add(CreateMenuItem("随机点名"));
         stackPanel.Children.Add(CreateMenuItem("倒计时"));
         stackPanel.Children.Add(CreateMenuItem("音量恢复"));
+        stackPanel.Children.Add(CreateMenuItem("设置"));
         stackPanel.Children.Add(CreateMenuItem("退出"));
 
         menuPanel.Child = stackPanel;
@@ -149,7 +117,8 @@ public partial class MainWindow
             Foreground = Brushes.White,
             BorderBrush = Brushes.Transparent,
             Cursor = Cursors.Hand,
-            HorizontalContentAlignment = HorizontalAlignment.Left,
+            HorizontalContentAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
             FontSize = 14,
             FontFamily = new FontFamily("Microsoft YaHei")
         };
@@ -157,12 +126,8 @@ public partial class MainWindow
         btn.Click += (s, e) => OnMenuItemClick(text);
         return btn;
     }
-
-    // ============================================================
-    //  窗口置顶
-    // ============================================================
-
-    /// <summary>定时刷新置顶的计时器，每 500ms 触发一次</summary>
+    
+    /// <summary>定时刷新置顶的计时器，每 60s 触发一次</summary>
     private DispatcherTimer timer = new DispatcherTimer();
 
     /// <summary>
@@ -180,18 +145,14 @@ public partial class MainWindow
         SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
             SWP_NO_MOVE | SWP_NO_SIZE | SWP_SHOW_WINDOW);
 
-        // 每 500ms 重新置顶，防止被其他置顶窗口覆盖
+        // 每 60000ms(60s) 重新置顶，防止被其他置顶窗口覆盖
         timer = new DispatcherTimer();
-        timer.Interval = TimeSpan.FromMilliseconds(500);
+        timer.Interval = TimeSpan.FromMilliseconds(60000);
         timer.Tick += (s, e) => SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
             SWP_NO_MOVE | SWP_NO_SIZE);
         timer.Start();
     }
-
-    // ============================================================
-    //  窗口外观
-    // ============================================================
-
+    
     /// <summary>
     /// 将方形窗口裁剪成圆形。
     /// WPF 的 Clip 属性可以接受任意 Geometry 来定义窗口的可视区域，
@@ -206,11 +167,7 @@ public partial class MainWindow
         EllipseGeometry circle = new EllipseGeometry(center, radius, radius);
         Clip = circle;
     }
-
-    // ============================================================
-    //  窗口加载 & 初始定位
-    // ============================================================
-
+    
     /// <summary>
     /// 窗口首次加载时：裁剪圆形 → 定位到屏幕右下角 → 边界保护。
     /// WindowStartupLocation="Manual" 表示由代码手动指定位置。
@@ -365,12 +322,6 @@ public partial class MainWindow
     ///
     /// 调用链：
     ///   Win32 GetCursorPos (物理像素) → TransformFromDevice (DIP 转换) → 返回 Point
-    ///
-    /// 为什么不用 WPF 自带的 PointToScreen：
-    ///   当前窗口设置了 AllowsTransparency=True，WPF 底层创建的是"分层窗口"
-    ///   (WS_EX_LAYERED)。在这种窗口上调用 PointToScreen 会得到不准确的坐标，
-    ///   导致拖拽时窗口位置漂移（窗口和鼠标逐渐脱节）。
-    ///   GetCursorPos 直接从操作系统获取光标位置，不受 WPF 窗口类型影响。
     /// </summary>
     /// <returns>鼠标在屏幕上的位置（WPF 设备无关像素坐标）</returns>
     private Point GetCursorScreenPos()
@@ -390,11 +341,7 @@ public partial class MainWindow
         // 降级处理：如果 PresentationSource 不可用（极少见），直接返回物理像素
         return new Point(pt.X, pt.Y);
     }
-
-    // ============================================================
-    //  菜单逻辑
-    // ============================================================
-
+    
     /// <summary>
     /// 显示/切换弹出菜单。
     ///
@@ -455,8 +402,17 @@ public partial class MainWindow
             case "随机点名":
                 LaunchRandomNameTool();
                 break;
+            case "倒计时":
+                LaunchCoundDownTool();
+                break;
+            case "音量恢复":
+                LaunchVolumeRecoveryTool();
+                break;
+            case "设置":
+                LaunchSettings();
+                break;
             case "退出":
-                Application.Current.Shutdown();
+                AskWhenExit();
                 break;
             // "倒计时" 和 "音量恢复" 暂未实现，预留扩展
         }
@@ -465,29 +421,88 @@ public partial class MainWindow
         CloseMenu();
     }
 
-    // ============================================================
-    //  启动外部工具
-    // ============================================================
 
+
+    /// <summary>
+    /// 启动"设置"。
+    /// 工具路径: 程序目录/Tools/ClassToolkit.Settings/ClassToolkit.Settings.exe
+    /// </summary>
+    private void LaunchSettings()
+    {
+        string SettingsPath = System.IO.Path.Combine(
+            AppDomain.CurrentDomain.BaseDirectory,
+            "Tools",
+            "ClassToolkit.Settings",
+            "ClassToolkit.Settings.exe");
+        
+        IfNotFoundTool(SettingsPath);
+        
+        Launch(SettingsPath);
+    }
+    
+    /// <summary>
+    /// 启动"音量恢复"工具。
+    /// 工具路径: 程序目录/Tools/ClassToolkit.VolumeRecovery/ClassToolkit.VolumeRecovery.exe
+    /// </summary>
+    private void LaunchVolumeRecoveryTool()
+    {
+        string SettingsPath = System.IO.Path.Combine(
+            AppDomain.CurrentDomain.BaseDirectory,
+            "Tools",
+            "ClassToolkit.VolumeRecovery",
+            "ClassToolkit.VolumeRecovery.exe");
+        
+        IfNotFoundTool(SettingsPath);
+        
+        Launch(SettingsPath);
+    }
+    
+    /// <summary>
+    /// 启动"倒计时"工具。
+    /// 工具路径: 程序目录/Tools/ClassToolkit.CountDown/ClassToolkit.CountDown.exe
+    /// </summary>
+    private void LaunchCoundDownTool()
+    {
+        string SettingsPath = System.IO.Path.Combine(
+            AppDomain.CurrentDomain.BaseDirectory,
+            "Tools",
+            "ClassToolkit.CountDown",
+            "ClassToolkit.CountDown.exe");
+        
+        IfNotFoundTool(SettingsPath);
+        
+        Launch(SettingsPath);
+    }
+    
     /// <summary>
     /// 启动"随机点名"工具。
     /// 工具路径: 程序目录/Tools/ClassToolkit.RandomName/ClassToolkit.RandomName.exe
     /// </summary>
     private void LaunchRandomNameTool()
     {
-        string toolPath = System.IO.Path.Combine(
+        string RandomNameToolPath = System.IO.Path.Combine(
             AppDomain.CurrentDomain.BaseDirectory,
             "Tools",
             "ClassToolkit.RandomName",
             "ClassToolkit.RandomName.exe"
         );
+        
+        IfNotFoundTool(RandomNameToolPath);
+        Launch(RandomNameToolPath);
+    }
 
+    
+
+    private void IfNotFoundTool(string toolPath)
+    {
         if (!System.IO.File.Exists(toolPath))
         {
             MessageBox.Show("未找到工具");
-            return;
         }
+    }
 
+    private void Launch(string toolPath)
+    {
         try
         {
             Process.Start(toolPath);
@@ -498,9 +513,107 @@ public partial class MainWindow
         }
     }
 
-    /// <summary>退出应用程序（未使用，保留备用）</summary>
-    private void Quit(object sender, RoutedEventArgs e)
+    private void AskWhenExit()
     {
-        Application.Current.Shutdown();
+        bool? confirmed = ShowConfirmDialog("确认退出？", "是否退出");
+        if (confirmed == true)
+        {
+            Application.Current.Shutdown();
+        }
     }
+
+    /// <summary>
+    /// 显示一个定位在悬浮球旁边的确认对话框。
+    ///
+    /// 为什么不用 MessageBox.Show(this, ...)：
+    ///   本窗口启用 AllowsTransparency=True（分层窗口），WPF 的 MessageBox
+    ///   内部依赖 CenterOwner 定位，对分层窗口的坐标计算会失败，退回到屏幕中央。
+    ///   因此手动创建一个 Window 并参照 ShowMenu() 的定位策略，用悬浮球的屏幕坐标
+    ///   计算对话框位置，绕过 WPF 的自动居中机制。
+    /// </summary>
+    /// <param name="message">提示文字</param>
+    /// <param name="title">对话框标题</param>
+    /// <returns>true=确认, false=取消, null=关闭（理论上不会出现）</returns>
+    private bool? ShowConfirmDialog(string message, string title)
+    {
+        // 构建确认对话框窗口，样式与 MessageBox 一致
+        var dialog = new Window
+        {
+            Title = title,
+            Width = 280,
+            SizeToContent = SizeToContent.Height,  // 高度根据内容自适应
+            WindowStyle = WindowStyle.ToolWindow,
+            ResizeMode = ResizeMode.NoResize,
+            ShowInTaskbar = false,
+            WindowStartupLocation = WindowStartupLocation.Manual,  // 关键：手动定位
+            Topmost = true,
+            Owner = this,                                         // 保持模态关系
+        };
+
+        // ── 对话框内容 ──
+        var panel = new StackPanel { Margin = new Thickness(20, 15, 20, 15) };
+
+        panel.Children.Add(new TextBlock
+        {
+            Text = message,
+            Margin = new Thickness(0, 0, 0, 15),
+            FontSize = 14,
+            FontFamily = new FontFamily("Microsoft YaHei"),
+            TextWrapping = TextWrapping.Wrap
+        });
+
+        var btnPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+
+        bool? dialogResult = null;
+
+        var yesBtn = new Button
+        {
+            Content = "是",
+            Width = 70,
+            Height = 30,
+            Margin = new Thickness(0, 0, 10, 0)
+        };
+        yesBtn.Click += (_, _) => { dialogResult = true; dialog.Close(); };
+
+        var noBtn = new Button
+        {
+            Content = "否",
+            Width = 70,
+            Height = 30
+        };
+        noBtn.Click += (_, _) => { dialogResult = false; dialog.Close(); };
+
+        btnPanel.Children.Add(yesBtn);
+        btnPanel.Children.Add(noBtn);
+        panel.Children.Add(btnPanel);
+        dialog.Content = panel;
+
+        // ── 定位：参照 ShowMenu() 的策略 —— 对话框显示在悬浮球右侧，垂直居中 ──
+        dialog.Loaded += (_, _) =>
+        {
+            // 默认：悬浮球右侧，留 5px 间距，垂直居中
+            double dialogLeft = this.Left + this.ActualWidth + 5;
+            double dialogTop = this.Top + (this.ActualHeight - dialog.ActualHeight) / 2;
+
+            // 边界保护（与 ShowMenu 一致）：不超出屏幕四边
+            if (dialogLeft + dialog.Width > SystemParameters.PrimaryScreenWidth)
+                dialogLeft = this.Left - dialog.Width - 5;  // 右侧不够 → 改放左侧
+            if (dialogLeft < 0) dialogLeft = 5;
+            if (dialogTop < 0) dialogTop = 5;
+            if (dialogTop + dialog.ActualHeight > SystemParameters.PrimaryScreenHeight)
+                dialogTop = SystemParameters.PrimaryScreenHeight - dialog.ActualHeight - 5;
+
+            dialog.Left = dialogLeft;
+            dialog.Top = dialogTop;
+        };
+
+        // 模态显示，阻塞直到用户点击按钮
+        dialog.ShowDialog();
+        return dialogResult;
+    }
+
 }
