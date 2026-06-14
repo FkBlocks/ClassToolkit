@@ -61,7 +61,7 @@ public partial class MainWindow
     {
         InitializeComponent();      // 加载 XAML 布局
         InitializeMenuPopup();      // 用代码构建 Popup 菜单
-        this.Loaded += (s, e) => MakeSuperTopmost();  // 窗口加载完成后立即置顶
+        this.Loaded += (_, _) => MakeSuperTopmost();  // 窗口加载完成后立即置顶
     }
 
     /// <summary>
@@ -123,7 +123,7 @@ public partial class MainWindow
             FontFamily = new FontFamily("Microsoft YaHei")
         };
         // 点击时传入文字，由 OnMenuItemClick 统一分发
-        btn.Click += (s, e) => OnMenuItemClick(text);
+        btn.Click += (_, _) => OnMenuItemClick(text);
         return btn;
     }
     
@@ -148,7 +148,7 @@ public partial class MainWindow
         // 每 60000ms(60s) 重新置顶，防止被其他置顶窗口覆盖
         timer = new DispatcherTimer();
         timer.Interval = TimeSpan.FromMilliseconds(60000);
-        timer.Tick += (s, e) => SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
+        timer.Tick += (_, _) => SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
             SWP_NO_MOVE | SWP_NO_SIZE);
         timer.Start();
     }
@@ -382,8 +382,7 @@ public partial class MainWindow
     /// <summary>关闭弹出菜单</summary>
     private void CloseMenu()
     {
-        if (_menuPopup != null)
-            _menuPopup.IsOpen = false;
+        _menuPopup.IsOpen = false;
         _isMenuOpen = false;
     }
 
@@ -518,6 +517,7 @@ public partial class MainWindow
         bool? confirmed = ShowConfirmDialog("确认退出？", "是否退出");
         if (confirmed == true)
         {
+            timer.Stop();
             Application.Current.Shutdown();
         }
     }
