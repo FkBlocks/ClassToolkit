@@ -146,8 +146,10 @@ public partial class MainWindow
             SWP_NO_MOVE | SWP_NO_SIZE | SWP_SHOW_WINDOW);
 
         // 每 60000ms(60s) 重新置顶，防止被其他置顶窗口覆盖
-        timer = new DispatcherTimer();
-        timer.Interval = TimeSpan.FromMilliseconds(60000);
+        timer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(500)
+        };
         timer.Tick += (_, _) => SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
             SWP_NO_MOVE | SWP_NO_SIZE);
         timer.Start();
