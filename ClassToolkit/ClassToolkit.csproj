@@ -35,6 +35,18 @@
         </ProjectReference>
     </ItemGroup>
 
+    <ItemGroup>
+        <!-- 文件在解决方案根目录 data/ 下，用 Link 映射到输出目录 -->
+        <Content Include="..\data\tools.json">
+            <Link>data\tools.json</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Include="..\data\config\config.json">
+            <Link>data\config\config.json</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+
     <!-- 开发时 (Build)：将 RandomName 编译输出复制到 Tools\ClassToolkit.RandomName 子目录 -->
     <Target Name="CopyRandomNameTool" AfterTargets="Build">
         <ItemGroup>
@@ -118,13 +130,11 @@
     <Target Name="CopySettingsForPublish" AfterTargets="Publish">
         <ItemGroup>
             <SettingsOutput Include="..\ClassToolkit.Settings\bin\$(Configuration)\net10.0-windows\*.*" />
-            <!-- SDK 可能无视 Private=false 仍将依赖复制到发布根目录 -->
             <SettingsResidue Include="$(PublishDir)ClassToolkit.Settings.*" />
         </ItemGroup>
         <Copy SourceFiles="@(SettingsOutput)"
               DestinationFolder="$(PublishDir)Tools\ClassToolkit.Settings"
               SkipUnchangedFiles="true" />
-        <!-- 删除被 SDK 误复制到发布根目录的文件（正确的文件在 Tools 子目录中） -->
         <Delete Files="@(SettingsResidue)" />
     </Target>
 

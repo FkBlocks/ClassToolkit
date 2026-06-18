@@ -6,6 +6,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Interop;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using System.Windows.Threading;
 
 
@@ -69,36 +70,73 @@ public partial class MainWindow
     /// 不用 XAML 是因为 Popup 需要独立于窗口的定位逻辑，
     /// 用代码更灵活地控制 Placement 和 Offset。
     /// </summary>
+    /// <summary>每个菜单按钮的固定高度（含 Margin），用于动态计算 Popup 尺寸</summary>
+    private const double MenuItemHeight = 40;
+
     private void InitializeMenuPopup()
     {
-        // 创建 Popup 容器
         _menuPopup = new Popup
         {
-            AllowsTransparency = true,          // 允许透明背景
-            Placement = PlacementMode.Absolute,  // 绝对定位（用屏幕坐标）
-            StaysOpen = false,                  // 点击外部自动关闭
-            Width = 130,
-            Height = 235
+            AllowsTransparency = true,
+            Placement = PlacementMode.Absolute,
+            StaysOpen = false,
         };
 
-        // 菜单面板：圆角边框 + 深色背景
+        BuildMenuFromJson();
+    }
+
+    /// <summary>
+    /// 读取 data/tools.json 并构建菜单内容。仅启动时调用一次。
+    /// </summary>
+    private void BuildMenuFromJson()
+    {
+        var tools = LoadTools();
+
+        var stackPanel = new StackPanel { Margin = new Thickness(10) };
+
+        foreach (var tool in tools)
+            stackPanel.Children.Add(CreateMenuItem(tool.Name, tool.Path));
+
+        // "退出"固定在底部，toolPath 为 null
+        stackPanel.Children.Add(CreateMenuItem("退出", null));
+
         var menuPanel = new Border
         {
             Background = new SolidColorBrush(Color.FromRgb(22, 22, 22)),
             CornerRadius = new CornerRadius(8),
-            Padding = new Thickness(8)
+            Padding = new Thickness(8),
+            Child = stackPanel
         };
 
-        // 竖直排列的菜单项
-        var stackPanel = new StackPanel { Margin = new Thickness(10) };
-        stackPanel.Children.Add(CreateMenuItem("随机点名"));
-        stackPanel.Children.Add(CreateMenuItem("倒计时"));
-        stackPanel.Children.Add(CreateMenuItem("音量恢复"));
-        stackPanel.Children.Add(CreateMenuItem("设置"));
-        stackPanel.Children.Add(CreateMenuItem("退出"));
-
-        menuPanel.Child = stackPanel;
         _menuPopup.Child = menuPanel;
+
+        // 动态计算 Popup 尺寸：工具数 + 1（退出按钮）
+        int itemCount = tools.Count + 1;
+        _menuPopup.Width = 130;
+        _menuPopup.Height = itemCount * MenuItemHeight + 36; // 36 = Border(8×2) + StackPanel(10×2)
+    }
+
+    /// <summary>
+    /// 从 data/tools.json 加载工具列表。
+    /// </summary>
+    private List<(string Name, string Path)> LoadTools()
+    {
+        string jsonPath = ClassToolkit.Core.Utilities.DataPathHelper.GetDataPath("tools.json");
+
+        if (!System.IO.File.Exists(jsonPath))
+            return new List<(string, string)>();
+
+        try
+        {
+            string json = System.IO.File.ReadAllText(jsonPath);
+            var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+            return dict?.Select(kv => (kv.Key, kv.Value)).ToList()
+                   ?? new List<(string, string)>();
+        }
+        catch
+        {
+            return new List<(string, string)>();
+        }
     }
 
     /// <summary>
@@ -106,7 +144,7 @@ public partial class MainWindow
     /// </summary>
     /// <param name="text">按钮文字</param>
     /// <returns>配置好的 Button 控件</returns>
-    private Button CreateMenuItem(string text)
+    private Button CreateMenuItem(string text, string? toolPath)
     {
         Button btn = new Button
         {
@@ -122,8 +160,12 @@ public partial class MainWindow
             FontSize = 14,
             FontFamily = new FontFamily("Microsoft YaHei")
         };
-        // 点击时传入文字，由 OnMenuItemClick 统一分发
-        btn.Click += (_, _) => OnMenuItemClick(text);
+
+        if (toolPath != null)
+            btn.Click += (_, _) => OnToolClick(text, toolPath);
+        else
+            btn.Click += (_, _) => AskWhenExit();
+
         return btn;
     }
     
@@ -388,129 +430,29 @@ public partial class MainWindow
         _isMenuOpen = false;
     }
 
-    // ============================================================
-    //  菜单项点击分发
-    // ============================================================
-
     /// <summary>
-    /// 根据菜单文字执行对应功能。
+    /// 工具菜单项点击处理 —— 关闭菜单后启动 tools.json 中指定的程序。
+    /// 使用 Process.Start 打开，由 Windows 决定关联程序。
     /// </summary>
-    /// <param name="menuText">CreateMenuItem 传入的按钮文字</param>
-    private void OnMenuItemClick(string menuText)
+    private void OnToolClick(string toolName, string toolPath)
     {
-        switch (menuText)
-        {
-            case "随机点名":
-                LaunchRandomNameTool();
-                break;
-            case "倒计时":
-                LaunchCoundDownTool();
-                break;
-            case "音量恢复":
-                LaunchVolumeRecoveryTool();
-                break;
-            case "设置":
-                LaunchSettings();
-                break;
-            case "退出":
-                AskWhenExit();
-                break;
-            // "倒计时" 和 "音量恢复" 暂未实现，预留扩展
-        }
-
-        // 点击菜单项后自动关闭菜单
         CloseMenu();
-    }
 
+        string fullPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, toolPath);
 
-
-    /// <summary>
-    /// 启动"设置"。
-    /// 工具路径: 程序目录/Tools/ClassToolkit.Settings/ClassToolkit.Settings.exe
-    /// </summary>
-    private void LaunchSettings()
-    {
-        string SettingsPath = System.IO.Path.Combine(
-            AppDomain.CurrentDomain.BaseDirectory,
-            "Tools",
-            "ClassToolkit.Settings",
-            "ClassToolkit.Settings.exe");
-        
-        IfNotFoundTool(SettingsPath);
-        
-        Launch(SettingsPath);
-    }
-    
-    /// <summary>
-    /// 启动"音量恢复"工具。
-    /// 工具路径: 程序目录/Tools/ClassToolkit.VolumeRecovery/ClassToolkit.VolumeRecovery.exe
-    /// </summary>
-    private void LaunchVolumeRecoveryTool()
-    {
-        string SettingsPath = System.IO.Path.Combine(
-            AppDomain.CurrentDomain.BaseDirectory,
-            "Tools",
-            "ClassToolkit.VolumeRecovery",
-            "ClassToolkit.VolumeRecovery.exe");
-        
-        IfNotFoundTool(SettingsPath);
-        
-        Launch(SettingsPath);
-    }
-    
-    /// <summary>
-    /// 启动"倒计时"工具。
-    /// 工具路径: 程序目录/Tools/ClassToolkit.CountDown/ClassToolkit.CountDown.exe
-    /// </summary>
-    private void LaunchCoundDownTool()
-    {
-        string SettingsPath = System.IO.Path.Combine(
-            AppDomain.CurrentDomain.BaseDirectory,
-            "Tools",
-            "ClassToolkit.CountDown",
-            "ClassToolkit.CountDown.exe");
-        
-        IfNotFoundTool(SettingsPath);
-        
-        Launch(SettingsPath);
-    }
-    
-    /// <summary>
-    /// 启动"随机点名"工具。
-    /// 工具路径: 程序目录/Tools/ClassToolkit.RandomName/ClassToolkit.RandomName.exe
-    /// </summary>
-    private void LaunchRandomNameTool()
-    {
-        string RandomNameToolPath = System.IO.Path.Combine(
-            AppDomain.CurrentDomain.BaseDirectory,
-            "Tools",
-            "ClassToolkit.RandomName",
-            "ClassToolkit.RandomName.exe"
-        );
-        
-        IfNotFoundTool(RandomNameToolPath);
-        Launch(RandomNameToolPath);
-    }
-
-    
-
-    private void IfNotFoundTool(string toolPath)
-    {
-        if (!System.IO.File.Exists(toolPath))
+        if (!System.IO.File.Exists(fullPath))
         {
-            MessageBox.Show("未找到工具");
+            MessageBox.Show($"未找到工具: {toolName}");
+            return;
         }
-    }
 
-    private void Launch(string toolPath)
-    {
         try
         {
-            Process.Start(toolPath);
+            Process.Start(fullPath);
         }
         catch (Exception ex)
         {
-            MessageBox.Show(ex.Message);
+            MessageBox.Show($"启动失败: {ex.Message}");
         }
     }
 

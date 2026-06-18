@@ -9,9 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\ClassToolkit.Core\ClassToolkit.Core.csproj">
-            <Private>false</Private>
-        </ProjectReference>
+        <ProjectReference Include="..\ClassToolkit.Core\ClassToolkit.Core.csproj" />
     </ItemGroup>
 
 </Project>

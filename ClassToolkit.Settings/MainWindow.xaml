@@ -1,12 +1,370 @@
-﻿<Window x:Class="ClassToolkit.Settings.MainWindow"
+<Window x:Class="ClassToolkit.Settings.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ClassToolkit.Settings"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        Title="设置" Height="620" Width="800"
+        MinHeight="500" MinWidth="660"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="ToolWindow"
+        ResizeMode="CanResize"
+        Background="{DynamicResource ContentBackground}">
 
+    <Window.Resources>
+        <!-- ═══ 颜色 ═══ -->
+        <SolidColorBrush x:Key="SidebarBackground" Color="#F0F0F2"/>
+        <SolidColorBrush x:Key="SidebarHover" Color="#E3E3E6"/>
+        <SolidColorBrush x:Key="SidebarSelected" Color="#D6D6DB"/>
+        <SolidColorBrush x:Key="SidebarAccent" Color="#4A7CF7"/>
+        <SolidColorBrush x:Key="ContentBackground" Color="#FAFAFC"/>
+        <SolidColorBrush x:Key="SeparatorColor" Color="#D1D1D6"/>
+        <SolidColorBrush x:Key="TextPrimary" Color="#1D1D20"/>
+        <SolidColorBrush x:Key="TextSecondary" Color="#6E6E78"/>
+        <SolidColorBrush x:Key="ControlBorder" Color="#D1D1D6"/>
+        <SolidColorBrush x:Key="ControlBackground" Color="#FFFFFF"/>
+
+        <!-- ═══ 左侧分类项样式（无按钮边框） ═══ -->
+        <Style x:Key="CategoryItemStyle" TargetType="ListBoxItem">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Padding" Value="24,10,16,10"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="13.5"/>
+            <Setter Property="FontFamily" Value="Microsoft YaHei UI"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <!-- 背景 + 左侧选中指示条 -->
+                        <Grid Background="{TemplateBinding Background}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="3"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <!-- 左侧蓝色指示条：选中时可见 -->
+                            <Border x:Name="AccentBar"
+                                    Grid.Column="0"
+                                    Width="3"
+                                    Background="{StaticResource SidebarAccent}"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Stretch"
+                                    Visibility="Collapsed"/>
+                            <!-- 文字内容 -->
+                            <ContentPresenter Grid.Column="1"
+                                              Margin="{TemplateBinding Padding}"
+                                              HorizontalAlignment="Left"
+                                              VerticalAlignment="Center"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <!-- 选中：浅灰底 + 蓝色指示条 -->
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="{StaticResource SidebarSelected}"/>
+                                <Setter TargetName="AccentBar" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <!-- 鼠标悬停 -->
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{StaticResource SidebarHover}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ═══ 右侧设置项通用样式 ═══ -->
+        <Style x:Key="SettingTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="22"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="Microsoft YaHei UI"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="Margin" Value="0,8,0,24"/>
+        </Style>
+
+        <Style x:Key="SettingLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13.5"/>
+            <Setter Property="FontFamily" Value="Microsoft YaHei UI"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="Margin" Value="0,12,0,4"/>
+        </Style>
+
+        <Style x:Key="SettingHintStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="Microsoft YaHei UI"/>
+            <Setter Property="Foreground" Value="{StaticResource TextSecondary}"/>
+            <Setter Property="Margin" Value="0,2,0,10"/>
+        </Style>
+
+        <Style x:Key="SettingTextBoxStyle" TargetType="TextBox">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontFamily" Value="Microsoft YaHei UI"/>
+            <Setter Property="Padding" Value="10,7,10,7"/>
+            <Setter Property="BorderBrush" Value="{StaticResource ControlBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="{StaticResource ControlBackground}"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
+        </Style>
+
+        <Style x:Key="SettingCheckBoxStyle" TargetType="CheckBox">
+            <Setter Property="FontSize" Value="13.5"/>
+            <Setter Property="FontFamily" Value="Microsoft YaHei UI"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,4,0,10"/>
+        </Style>
+    </Window.Resources>
+
+    <!-- ═══ 主布局 ═══ -->
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="200"/>   <!-- 左侧分类栏 -->
+            <ColumnDefinition Width="1"/>     <!-- 分隔竖线 -->
+            <ColumnDefinition Width="*"/>     <!-- 右侧详细设置 -->
+        </Grid.ColumnDefinitions>
+
+        <!-- ── 左侧分类栏 ── -->
+        <Border Grid.Column="0" Background="{StaticResource SidebarBackground}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- 分类栏标题 -->
+                <TextBlock Grid.Row="0"
+                           Text="设置"
+                           FontSize="20"
+                           FontWeight="SemiBold"
+                           FontFamily="Microsoft YaHei UI"
+                           Foreground="{StaticResource TextPrimary}"
+                           Margin="24,24,0,16"/>
+
+                <!-- 分类列表 -->
+                <ListBox x:Name="CategoryList"
+                         Grid.Row="1"
+                         BorderThickness="0"
+                         Background="Transparent"
+                         ItemContainerStyle="{StaticResource CategoryItemStyle}"
+                         SelectedIndex="0">
+                    <ListBoxItem Tag="general">通用</ListBoxItem>
+                    <ListBoxItem Tag="appearance">外观</ListBoxItem>
+                    <ListBoxItem Tag="tools">工具</ListBoxItem>
+                    <ListBoxItem Tag="about">关于</ListBoxItem>
+                </ListBox>
+            </Grid>
+        </Border>
+
+        <!-- ── 分隔竖线（颜色由此 Border 的 Background 控制） ── -->
+        <Border x:Name="SepLine"
+                Grid.Column="1"
+                Background="{StaticResource SeparatorColor}"
+                SnapsToDevicePixels="True"/>
+
+        <!-- ── 右侧详细设置 ── -->
+        <Grid Grid.Column="2" Background="{StaticResource ContentBackground}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>          <!-- 可滚动内容区 -->
+                <RowDefinition Height="Auto"/>       <!-- 底部应用按钮栏 -->
+            </Grid.RowDefinitions>
+
+            <!-- 可滚动内容 -->
+            <ScrollViewer Grid.Row="0"
+                          VerticalScrollBarVisibility="Auto"
+                          Padding="40,24,40,12">
+                <Grid>
+                    <!--
+                        各分类的设置页，通过 Visibility 切换。
+                    -->
+
+                    <!-- ═══ 通用设置 ═══ -->
+                    <Grid x:Name="PageGeneral" Visibility="Visible">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SettingTitleStyle}" Text="通用"/>
+
+                            <TextBlock Style="{StaticResource SettingLabelStyle}" Text="语言"/>
+                            <TextBlock Style="{StaticResource SettingHintStyle}" Text="界面显示语言，更改后需重启应用。"/>
+                            <ComboBox x:Name="CmbLanguage" Margin="0,0,0,12"
+                                      FontSize="13" FontFamily="Microsoft YaHei UI"
+                                      Padding="10,5" Width="220" HorizontalAlignment="Left">
+                                <ComboBoxItem Content="简体中文"/>
+                                <ComboBoxItem Content="English"/>
+                            </ComboBox>
+
+                            <TextBlock Style="{StaticResource SettingLabelStyle}" Text="开机自启"/>
+                            <TextBlock Style="{StaticResource SettingHintStyle}" Text="系统启动时自动运行 ClassToolkit。"/>
+                            <CheckBox x:Name="ChkAutoStart" Style="{StaticResource SettingCheckBoxStyle}"
+                                      Content="启用开机自启动"/>
+
+                            <TextBlock Style="{StaticResource SettingLabelStyle}" Text="关闭行为"/>
+                            <TextBlock Style="{StaticResource SettingHintStyle}" Text="点击悬浮球菜单中的【退出】时的行为。"/>
+                            <ComboBox x:Name="CmbCloseBehavior" Margin="0,0,0,12"
+                                      FontSize="13" FontFamily="Microsoft YaHei UI"
+                                      Padding="10,5" Width="220" HorizontalAlignment="Left">
+                                <ComboBoxItem Content="直接退出"/>
+                                <ComboBoxItem Content="最小化到托盘"/>
+                            </ComboBox>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- ═══ 外观设置 ═══ -->
+                    <Grid x:Name="PageAppearance" Visibility="Collapsed">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SettingTitleStyle}" Text="外观"/>
+
+                            <TextBlock Style="{StaticResource SettingLabelStyle}" Text="主题"/>
+                            <TextBlock Style="{StaticResource SettingHintStyle}" Text="应用整体色调。"/>
+                            <ComboBox x:Name="CmbTheme" Margin="0,0,0,12"
+                                      FontSize="13" FontFamily="Microsoft YaHei UI"
+                                      Padding="10,5" Width="220" HorizontalAlignment="Left">
+                                <ComboBoxItem Content="跟随系统"/>
+                                <ComboBoxItem Content="浅色"/>
+                                <ComboBoxItem Content="深色"/>
+                            </ComboBox>
+
+                            <TextBlock Style="{StaticResource SettingLabelStyle}" Text="悬浮球大小"/>
+                            <TextBlock Style="{StaticResource SettingHintStyle}" Text="调节悬浮球在屏幕上的尺寸（50–120px）。"/>
+                            <Slider x:Name="SldBallSize" Minimum="50" Maximum="120" Value="60"
+                                    Width="260" HorizontalAlignment="Left"
+                                    IsSnapToTickEnabled="True" TickFrequency="5"
+                                    Margin="0,2,0,12"/>
+                            <TextBlock x:Name="TxtBallSizeValue" Text="当前: 60 px"
+                                       FontSize="12"
+                                       Foreground="{StaticResource TextSecondary}"
+                                       FontFamily="Microsoft YaHei UI"
+                                       Margin="0,0,0,16"/>
+
+                            <TextBlock Style="{StaticResource SettingLabelStyle}" Text="分隔线颜色"/>
+                            <TextBlock Style="{StaticResource SettingHintStyle}" Text="自定义设置页中分类栏与内容区之间竖线的颜色。"/>
+                            <!-- 简单的颜色预设按钮 -->
+                            <StackPanel Orientation="Horizontal" Margin="0,2,0,12">
+                                <Border Width="28" Height="28" CornerRadius="14" Background="#D1D1D6"
+                                        Margin="0,0,8,0" Cursor="Hand" ToolTip="浅灰（默认）"
+                                        MouseLeftButtonDown="SeparatorColor_Click" Tag="#D1D1D6">
+                                    <Border.Resources>
+                                        <Style TargetType="Border">
+                                            <Setter Property="BorderThickness" Value="2"/>
+                                            <Setter Property="BorderBrush" Value="Transparent"/>
+                                        </Style>
+                                    </Border.Resources>
+                                </Border>
+                                <Border Width="28" Height="28" CornerRadius="14" Background="#4A7CF7"
+                                        Margin="0,0,8,0" Cursor="Hand" ToolTip="蓝色"
+                                        MouseLeftButtonDown="SeparatorColor_Click" Tag="#4A7CF7"/>
+                                <Border Width="28" Height="28" CornerRadius="14" Background="#E53E3E"
+                                        Margin="0,0,8,0" Cursor="Hand" ToolTip="红色"
+                                        MouseLeftButtonDown="SeparatorColor_Click" Tag="#E53E3E"/>
+                                <Border Width="28" Height="28" CornerRadius="14" Background="#38A169"
+                                        Margin="0,0,8,0" Cursor="Hand" ToolTip="绿色"
+                                        MouseLeftButtonDown="SeparatorColor_Click" Tag="#38A169"/>
+                                <Border Width="28" Height="28" CornerRadius="14" Background="#1D1D20"
+                                        Margin="0,0,8,0" Cursor="Hand" ToolTip="黑色"
+                                        MouseLeftButtonDown="SeparatorColor_Click" Tag="#1D1D20"/>
+                            </StackPanel>
+
+                            <TextBlock Style="{StaticResource SettingLabelStyle}" Text="菜单字体大小"/>
+                            <TextBlock Style="{StaticResource SettingHintStyle}" Text="悬浮球弹出菜单的文字大小（12–20px）。"/>
+                            <TextBox x:Name="TxtMenuFontSize" Style="{StaticResource SettingTextBoxStyle}"
+                                     Text="14" Width="80" HorizontalAlignment="Left"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- ═══ 工具设置 ═══ -->
+                    <Grid x:Name="PageTools" Visibility="Collapsed">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SettingTitleStyle}" Text="工具"/>
+
+                            <TextBlock Style="{StaticResource SettingLabelStyle}" Text="tools.json 路径"/>
+                            <TextBlock Style="{StaticResource SettingHintStyle}" Text="自定义工具注册表文件的位置，留空使用默认路径。"/>
+                            <TextBox x:Name="TxtToolsJsonPath" Style="{StaticResource SettingTextBoxStyle}"
+                                     Text="data/tools.json" Width="280" HorizontalAlignment="Left"/>
+
+                            <TextBlock Style="{StaticResource SettingLabelStyle}" Text="工具启动方式"/>
+                            <TextBlock Style="{StaticResource SettingHintStyle}" Text="从悬浮球菜单点击工具时的打开方式。"/>
+                            <ComboBox x:Name="CmbToolLaunchMode" Margin="0,0,0,12"
+                                      FontSize="13" FontFamily="Microsoft YaHei UI"
+                                      Padding="10,5" Width="220" HorizontalAlignment="Left">
+                                <ComboBoxItem Content="由 Windows 决定（推荐）"/>
+                                <ComboBoxItem Content="新窗口打开"/>
+                            </ComboBox>
+
+                            <TextBlock Style="{StaticResource SettingLabelStyle}" Text="工具目录"/>
+                            <TextBlock Style="{StaticResource SettingHintStyle}" Text="存放工具插件的文件夹路径，相对于程序根目录。"/>
+                            <TextBox x:Name="TxtToolsDirectory" Style="{StaticResource SettingTextBoxStyle}"
+                                     Text="Tools" Width="280" HorizontalAlignment="Left"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- ═══ 关于 ═══ -->
+                    <Grid x:Name="PageAbout" Visibility="Collapsed">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SettingTitleStyle}" Text="关于"/>
+
+                            <!-- 应用图标占位 -->
+                            <Border Width="64" Height="64" CornerRadius="16"
+                                    Background="#4A7CF7" Margin="0,8,0,16">
+                                <TextBlock Text="CT"
+                                           Foreground="White" FontSize="24"
+                                           FontWeight="Bold"
+                                           FontFamily="Microsoft YaHei UI"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"/>
+                            </Border>
+
+                            <TextBlock Text="ClassToolkit"
+                                       FontSize="18" FontWeight="SemiBold"
+                                       FontFamily="Microsoft YaHei UI"
+                                       Foreground="{StaticResource TextPrimary}"
+                                       Margin="0,0,0,4"/>
+                            <TextBlock Text="版本 1.0.0"
+                                       FontSize="13"
+                                       FontFamily="Microsoft YaHei UI"
+                                       Foreground="{StaticResource TextSecondary}"
+                                       Margin="0,0,0,16"/>
+                            <TextBlock Text="一款轻量级教室教学工具箱，集成随机点名、倒计时、\n音量恢复等实用功能。"
+                                       FontSize="13.5"
+                                       FontFamily="Microsoft YaHei UI"
+                                       Foreground="{StaticResource TextPrimary}"
+                                       TextWrapping="Wrap"
+                                       LineHeight="22"
+                                       Margin="0,0,0,8"/>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </ScrollViewer>
+
+            <!-- ── 底部应用按钮栏 ── -->
+            <Border Grid.Row="1"
+                    Background="{StaticResource SidebarBackground}"
+                    BorderBrush="{StaticResource SeparatorColor}"
+                    BorderThickness="0,1,0,0"
+                    Padding="0,10,40,10">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <!-- 保存成功提示，默认隐藏 -->
+                    <TextBlock x:Name="TxtSavedHint"
+                               Text="✓ 设置已保存"
+                               FontSize="13"
+                               FontFamily="Microsoft YaHei UI"
+                               Foreground="#38A169"
+                               VerticalAlignment="Center"
+                               Margin="0,0,16,0"
+                               Visibility="Collapsed"/>
+                    <Button x:Name="BtnApply"
+                            Content="应  用"
+                            Width="100" Height="34"
+                            FontSize="13.5"
+                            FontFamily="Microsoft YaHei UI"
+                            Foreground="White"
+                            Background="#4A7CF7"
+                            BorderBrush="#3B6CD4"
+                            BorderThickness="1"
+                            Cursor="Hand"
+                            Click="ApplySettings_Click"/>
+                </StackPanel>
+            </Border>
+        </Grid>
     </Grid>
 </Window>

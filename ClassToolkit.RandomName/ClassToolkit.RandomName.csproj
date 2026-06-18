@@ -13,9 +13,7 @@
           Private=false: Core.dll 只在主程序根目录保留一份，工具运行时自动向上查找到。
           避免每个 Tools/子目录 各自拷贝一份 Core.dll 造成冗余。
         -->
-        <ProjectReference Include="..\ClassToolkit.Core\ClassToolkit.Core.csproj">
-            <Private>false</Private>
-        </ProjectReference>
+        <ProjectReference Include="..\ClassToolkit.Core\ClassToolkit.Core.csproj" />
     </ItemGroup>
 
 </Project>

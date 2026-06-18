@@ -1,0 +1,12 @@
+{
+  "Language": "简体中文",
+  "AutoStart": false,
+  "CloseBehavior": "直接退出",
+  "Theme": "跟随系统",
+  "BallSize": 60,
+  "SeparatorColor": "#D1D1D6",
+  "MenuFontSize": 14,
+  "ToolsJsonPath": "data/tools.json",
+  "ToolLaunchMode": "由 Windows 决定（推荐）",
+  "ToolsDirectory": "Tools"
+}
