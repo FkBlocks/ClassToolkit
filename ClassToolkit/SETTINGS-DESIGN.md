@@ -249,3 +249,273 @@ configService.Save(config);
 | `MainWindow.xaml` | 分类栏 + 所有设置页 UI | ✅ 加控件 |
 | `MainWindow.xaml.cs` | LoadSettings / SaveSettings / 分类路由 | ✅ 各加一行 |
 | `Core/Utilities/DataPathHelper.cs` | 跨项目路径解析 | ❌ 不改 |
+
+---
+
+## 添加控件速查手册
+
+每种控件类型给出完整 XAML 模板 + LoadSettings / SaveSettings 各一行代码。**所有模板已自动适配明暗主题，直接复制即可。**
+
+> 关键规则：XAML 中使用 `{DynamicResource ...}` 引用颜色以随主题切换；C# 中使用 `GetStr`/`GetBool`/`GetInt` 读取并给缺省值。
+
+---
+
+### 1. 文本标签（只读）
+
+纯展示文字，不需要持久化，只加 XAML：
+
+```xml
+<TextBlock Style="{StaticResource SettingLabelStyle}" Text="标签文字"/>
+<TextBlock Style="{StaticResource SettingHintStyle}" Text="灰色提示说明。"/>
+```
+
+| 样式 Key | 用途 | 字号 | 颜色 |
+|---|---|---|---|
+| `SettingTitleStyle` | 页面标题 | 22pt SemiBold | TextPrimary |
+| `SettingLabelStyle` | 设置项标签 | 13.5pt | TextPrimary |
+| `SettingHintStyle` | 灰色提示 | 12pt | TextSecondary |
+
+---
+
+### 2. 文本输入框（TextBox）
+
+```xml
+<!-- XAML -->
+<TextBlock Style="{StaticResource SettingLabelStyle}" Text="我的输入"/>
+<TextBlock Style="{StaticResource SettingHintStyle}" Text="提示说明。"/>
+<TextBox x:Name="TxtMyInput" Style="{StaticResource SettingTextBoxStyle}"
+         Text="默认值" Width="280" HorizontalAlignment="Left"/>
+```
+
+```csharp
+// LoadSettings
+TxtMyInput.Text = GetStr(_settings, "MyInput", "默认值");
+
+// SaveSettings
+_settings["MyInput"] = TxtMyInput.Text;
+```
+
+| 要点 | 说明 |
+|---|---|
+| 前缀 `Txt` | 命名规范，和现有控件一致 |
+| `Style="{StaticResource SettingTextBoxStyle}"` | **必须加**——获得主题适配的 Background / Foreground / Border / CaretBrush |
+| `GetStr` 的第三个参数 | 配置文件里不存在该 key 时的默认值 |
+| `Width="280"` | 建议值；短输入可用 `80` |
+
+---
+
+### 3. 复选框（CheckBox）
+
+```xml
+<!-- XAML -->
+<TextBlock Style="{StaticResource SettingLabelStyle}" Text="功能开关"/>
+<TextBlock Style="{StaticResource SettingHintStyle}" Text="启用后将自动执行……"/>
+<CheckBox x:Name="ChkMyFeature" Style="{StaticResource SettingCheckBoxStyle}"
+          Content="启用我的功能"/>
+```
+
+```csharp
+// LoadSettings
+ChkMyFeature.IsChecked = GetBool(_settings, "MyFeature");
+
+// SaveSettings
+_settings["MyFeature"] = ChkMyFeature.IsChecked ?? false;
+```
+
+| 要点 | 说明 |
+|---|---|
+| 前缀 `Chk` | 命名规范 |
+| `Style="{StaticResource SettingCheckBoxStyle}"` | 获得主题 Foreground + 字体大小 |
+| `GetBool` 缺省 `false` | 不传第三个参数时默认 `false` |
+
+---
+
+### 4. 下拉框（ComboBox）
+
+```xml
+<!-- XAML -->
+<TextBlock Style="{StaticResource SettingLabelStyle}" Text="选择项"/>
+<TextBlock Style="{StaticResource SettingHintStyle}" Text="从下拉列表中选择。"/>
+<ComboBox x:Name="CmbMyChoice"
+          FontSize="13" FontFamily="Microsoft YaHei UI"
+          ItemContainerStyle="{StaticResource ThemeComboBoxItem}"
+          Padding="10,5" Width="220" HorizontalAlignment="Left">
+    <ComboBoxItem Content="选项一"/>
+    <ComboBoxItem Content="选项二"/>
+    <ComboBoxItem Content="选项三"/>
+</ComboBox>
+```
+
+```csharp
+// LoadSettings
+SetComboBoxByContent(CmbMyChoice, GetStr(_settings, "MyChoice", "选项一"));
+
+// SaveSettings
+_settings["MyChoice"] = GetComboBoxContent(CmbMyChoice);
+```
+
+| 要点 | 说明 |
+|---|---|
+| 前缀 `Cmb` | 命名规范 |
+| `ItemContainerStyle="{StaticResource ThemeComboBoxItem}"` | **必须加**——下拉项获得主题文字色 + hover 蓝色高亮 |
+| **不要**手动加 `Background` / `Foreground` | 全局隐式 ComboBox 样式已覆盖 |
+| `Width="220"` | 推荐的 ComboBox 宽度；更宽的内容可用 `280` |
+| `SetComboBoxByContent` | 按显示文字匹配项，不用关心索引 |
+| `GetComboBoxContent` | 返回选中项的纯文字 |
+
+---
+
+### 5. 滑块（Slider）
+
+```xml
+<!-- XAML -->
+<TextBlock Style="{StaticResource SettingLabelStyle}" Text="数值调节"/>
+<TextBlock Style="{StaticResource SettingHintStyle}" Text="范围 50–200，步长 10。"/>
+<Slider x:Name="SldMyValue" Minimum="50" Maximum="200" Value="100"
+        Width="260" HorizontalAlignment="Left"
+        IsSnapToTickEnabled="True" TickFrequency="10"
+        Margin="0,2,0,12"/>
+<TextBlock x:Name="TxtMyValueHint" Text="当前: 100"
+           FontSize="12" Foreground="{DynamicResource TextSecondary}"
+           FontFamily="Microsoft YaHei UI" Margin="0,0,0,16"/>
+```
+
+```csharp
+// LoadSettings
+SldMyValue.Value = GetInt(_settings, "MyValue", 100);
+TxtMyValueHint.Text = $"当前: {(int)SldMyValue.Value}";
+
+// SaveSettings
+_settings["MyValue"] = (int)SldMyValue.Value;
+```
+
+```csharp
+// 构造函数里加实时更新提示文字
+SldMyValue.ValueChanged += (_, e) =>
+    TxtMyValueHint.Text = $"当前: {(int)e.NewValue}";
+```
+
+| 要点 | 说明 |
+|---|---|
+| 前缀 `Sld` | 命名规范 |
+| `TextSecondary` | 提示文字用次要色，不喧宾夺主 |
+| `ValueChanged` | 拖拽时实时显示当前值 |
+
+---
+
+### 6. 颜色选择器（Color Dot 模式）
+
+复制分隔线颜色选择器的现有模式。适用于用户从预设颜色中选择。
+
+```xml
+<!-- XAML -->
+<TextBlock Style="{StaticResource SettingLabelStyle}" Text="强调色"/>
+<TextBlock Style="{StaticResource SettingHintStyle}" Text="选择一个颜色。"/>
+<StackPanel Orientation="Horizontal" Margin="0,2,0,12">
+    <Border Width="28" Height="28" CornerRadius="14" Background="#4A7CF7"
+            Cursor="Hand" ToolTip="蓝色"
+            MouseLeftButtonDown="MyColor_Click" Tag="#4A7CF7"/>
+    <Border Width="28" Height="28" CornerRadius="14" Background="#38A169"
+            Cursor="Hand" ToolTip="绿色"
+            MouseLeftButtonDown="MyColor_Click" Tag="#38A169"/>
+    <!-- 更多颜色... -->
+</StackPanel>
+<!-- 存储：一个隐藏的 TextBox 记录选中的颜色 -->
+<TextBox x:Name="TxtMyColor" Visibility="Collapsed"/>
+```
+
+```csharp
+// LoadSettings
+string savedColor = GetStr(_settings, "MyColor", "#4A7CF7");
+TxtMyColor.Text = savedColor;
+ApplyMyColor(savedColor);
+
+// SaveSettings
+_settings["MyColor"] = TxtMyColor.Text;
+
+// 点击事件
+private void MyColor_Click(object sender, MouseButtonEventArgs e)
+{
+    if (sender is Border border && border.Tag is string hex)
+    {
+        TxtMyColor.Text = hex;
+        ApplyMyColor(hex);
+    }
+}
+
+private void ApplyMyColor(string hex)
+{
+    var brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex));
+    brush.Freeze();
+    TargetElement.Background = brush;  // 替换为接收颜色的元素
+}
+```
+
+---
+
+### 7. 添加新分类栏
+
+在已有 4 个分类之外加一个新的侧边栏分类。
+
+**Step 1 — XAML 创建页面**（在 `</Grid>` 结束标签前，即最后一个 `PageXxx` Grid 之后）：
+
+```xml
+<!-- ═══ 我的分类 ═══ -->
+<Grid x:Name="PageMyCategory" Visibility="Collapsed">
+    <StackPanel>
+        <TextBlock Style="{StaticResource SettingTitleStyle}" Text="我的分类"/>
+        <!-- 这里放你的控件 -->
+    </StackPanel>
+</Grid>
+```
+
+**Step 2 — XAML 注册侧边栏条目**（在 `CategoryList` 的 `<ListBoxItem>` 列表末尾）：
+
+```xml
+<ListBoxItem Tag="mycategory">我的分类</ListBoxItem>
+```
+
+**Step 3 — C# 注册路由**（在 `OnCategoryChanged` 方法中）：
+
+```csharp
+// 在 "全关" 列表中添加
+PageMyCategory.Visibility = Visibility.Collapsed;
+
+// 在 switch 中添加
+case "mycategory": PageMyCategory.Visibility = Visibility.Visible; break;
+```
+
+| 要点 | 说明 |
+|---|---|
+| `Tag` 值与 `case` 字符串必须一致 | 这是路由 key |
+| 新建的 `Grid` 必须在内容区 `<ScrollViewer>` 内部 | 否则不会跟随滚动 |
+| `x:Name` 命名规范 | 前缀 `Page` + 驼峰 |
+
+---
+
+## 完整扩展流程（3 步）
+
+以添加一个"启用新功能"复选框为例：
+
+**Step 1 — XAML**：在对应页面 `<StackPanel>` 中添加：
+
+```xml
+<TextBlock Style="{StaticResource SettingLabelStyle}" Text="新功能"/>
+<TextBlock Style="{StaticResource SettingHintStyle}" Text="开启后将启用实验性功能。"/>
+<CheckBox x:Name="ChkNewFeature" Style="{StaticResource SettingCheckBoxStyle}"
+          Content="启用新功能"/>
+```
+
+**Step 2 — LoadSettings**（在对应分类区域）：
+
+```csharp
+ChkNewFeature.IsChecked = GetBool(_settings, "NewFeature");
+```
+
+**Step 3 — SaveSettings**（在对应分类区域）：
+
+```csharp
+_settings["NewFeature"] = ChkNewFeature.IsChecked ?? false;
+```
+
+**完成**。启动 → 对应页面出现新复选框 → 切换 → 点"应用" → `config.json` 自动出现 `"NewFeature": true`。主题自动适配，暗色模式下文字白色、背景深灰。
