@@ -1,10 +1,10 @@
+using ClassToolkit.Core.Services;
+using ClassToolkit.Settings.Services;
 using System.Text.Json.Nodes;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using ClassToolkit.Core.Services;
-using ClassToolkit.Settings.Services;
 
 namespace ClassToolkit.Settings;
 
@@ -49,21 +49,21 @@ public partial class MainWindow : Window
         _settings = _config.Load();
 
         // ── 通用 ──
-        SetComboBoxByContent(CmbLanguage,          GetStr(_settings, "Language", "简体中文"));
-        ChkAutoStart.IsChecked =                   GetBool(_settings, "AutoStart");
-        SetComboBoxByContent(CmbCloseBehavior,     GetStr(_settings, "CloseBehavior", "直接退出"));
+        SetComboBoxByContent(CmbLanguage, GetStr(_settings, "Language", "简体中文"));
+        ChkAutoStart.IsChecked = GetBool(_settings, "AutoStart");
+        SetComboBoxByContent(CmbCloseBehavior, GetStr(_settings, "CloseBehavior", "直接退出"));
 
         // ── 外观 ──
-        SetComboBoxByContent(CmbTheme,             GetStr(_settings, "Theme", "跟随系统"));
-        SldBallSize.Value =                        GetInt(_settings, "BallSize", 60);
-        TxtBallSizeValue.Text =                    $"当前: {(int)SldBallSize.Value} px";
-        ApplySeparatorColor(                       GetStr(_settings, "SeparatorColor", "#D1D1D6"));
-        TxtMenuFontSize.Text =                     GetInt(_settings, "MenuFontSize", 14).ToString();
+        SetComboBoxByContent(CmbTheme, GetStr(_settings, "Theme", "跟随系统"));
+        SldBallSize.Value = GetInt(_settings, "BallSize", 60);
+        TxtBallSizeValue.Text = $"当前: {(int)SldBallSize.Value} px";
+        ApplySeparatorColor(GetStr(_settings, "SeparatorColor", "#D1D1D6"));
+        TxtMenuFontSize.Text = GetInt(_settings, "MenuFontSize", 14).ToString();
 
         // ── 工具 ──
-        TxtToolsJsonPath.Text =                    GetStr(_settings, "ToolsJsonPath", "data/tools.json");
-        SetComboBoxByContent(CmbToolLaunchMode,    GetStr(_settings, "ToolLaunchMode", "由 Windows 决定（推荐）"));
-        TxtToolsDirectory.Text =                   GetStr(_settings, "ToolsDirectory", "Tools");
+        TxtToolsJsonPath.Text = GetStr(_settings, "ToolsJsonPath", "data/tools.json");
+        SetComboBoxByContent(CmbToolLaunchMode, GetStr(_settings, "ToolLaunchMode", "由 Windows 决定（推荐）"));
+        TxtToolsDirectory.Text = GetStr(_settings, "ToolsDirectory", "Tools");
 
         // ── 主题应用（最后执行，覆盖所有颜色）──
         ThemeService.Apply(GetStr(_settings, "Theme", "跟随系统"), Resources);
@@ -76,20 +76,20 @@ public partial class MainWindow : Window
     private void SaveSettings()
     {
         // ── 通用 ──
-        _settings["Language"]       = GetComboBoxContent(CmbLanguage);
-        _settings["AutoStart"]      = ChkAutoStart.IsChecked ?? false;
-        _settings["CloseBehavior"]  = GetComboBoxContent(CmbCloseBehavior);
+        _settings["Language"] = GetComboBoxContent(CmbLanguage);
+        _settings["AutoStart"] = ChkAutoStart.IsChecked ?? false;
+        _settings["CloseBehavior"] = GetComboBoxContent(CmbCloseBehavior);
 
         // ── 外观 ──
-        _settings["Theme"]           = GetComboBoxContent(CmbTheme);
-        _settings["BallSize"]        = (int)SldBallSize.Value;
-        _settings["SeparatorColor"]  = GetCurrentSeparatorColorHex();
-        _settings["MenuFontSize"]    = int.TryParse(TxtMenuFontSize.Text, out var fs) ? fs : 14;
+        _settings["Theme"] = GetComboBoxContent(CmbTheme);
+        _settings["BallSize"] = (int)SldBallSize.Value;
+        _settings["SeparatorColor"] = GetCurrentSeparatorColorHex();
+        _settings["MenuFontSize"] = int.TryParse(TxtMenuFontSize.Text, out var fs) ? fs : 14;
 
         // ── 工具 ──
-        _settings["ToolsJsonPath"]   = TxtToolsJsonPath.Text;
-        _settings["ToolLaunchMode"]  = GetComboBoxContent(CmbToolLaunchMode);
-        _settings["ToolsDirectory"]  = TxtToolsDirectory.Text;
+        _settings["ToolsJsonPath"] = TxtToolsJsonPath.Text;
+        _settings["ToolLaunchMode"] = GetComboBoxContent(CmbToolLaunchMode);
+        _settings["ToolsDirectory"] = TxtToolsDirectory.Text;
 
         _config.Save(_settings);
     }
@@ -101,17 +101,17 @@ public partial class MainWindow : Window
         if (CategoryList.SelectedItem is not ListBoxItem item || item.Tag is not string tag)
             return;
 
-        PageGeneral.Visibility     = Visibility.Collapsed;
-        PageAppearance.Visibility  = Visibility.Collapsed;
-        PageTools.Visibility       = Visibility.Collapsed;
-        PageAbout.Visibility       = Visibility.Collapsed;
+        PageGeneral.Visibility = Visibility.Collapsed;
+        PageAppearance.Visibility = Visibility.Collapsed;
+        PageTools.Visibility = Visibility.Collapsed;
+        PageAbout.Visibility = Visibility.Collapsed;
 
         switch (tag)
         {
-            case "general":     PageGeneral.Visibility    = Visibility.Visible; break;
-            case "appearance":  PageAppearance.Visibility = Visibility.Visible; break;
-            case "tools":       PageTools.Visibility      = Visibility.Visible; break;
-            case "about":       PageAbout.Visibility      = Visibility.Visible; break;
+            case "general": PageGeneral.Visibility = Visibility.Visible; break;
+            case "appearance": PageAppearance.Visibility = Visibility.Visible; break;
+            case "tools": PageTools.Visibility = Visibility.Visible; break;
+            case "about": PageAbout.Visibility = Visibility.Visible; break;
         }
     }
 

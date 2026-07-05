@@ -10,7 +10,7 @@ namespace ClassToolkit.Core.Services
         static string logDir = DataPathHelper.GetDataPath("log");
         static string logFile = Path.Combine(logDir, "running.log");
         private static string? _who;
-        
+
         // 创建安全锁
         private static readonly object _fileLock = new object();
 
@@ -20,7 +20,7 @@ namespace ClassToolkit.Core.Services
         }
 
         public static void Init(string who)
-        { 
+        {
             _who = who;
             Directory.CreateDirectory(Path.GetDirectoryName(logFile)!);
         }

@@ -1,14 +1,14 @@
+using ClassToolkit.Core.Services;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
-using System.Windows.Media;
 using System.Windows.Interop;
-using System.Runtime.InteropServices;
-using System.Text.Json;
+using System.Windows.Media;
 using System.Windows.Threading;
-using ClassToolkit.Core.Services;
 
 
 namespace ClassToolkit;
@@ -18,7 +18,7 @@ namespace ClassToolkit;
 /// </summary>
 public partial class MainWindow
 {
-    
+
     /// <summary>设置窗口位置和层级（用于置顶）</summary>
     [DllImport("user32.dll")]
     static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
@@ -33,7 +33,7 @@ public partial class MainWindow
     /// <summary>Win32 POINT 结构体，int 类型（物理像素）</summary>
     [StructLayout(LayoutKind.Sequential)]
     struct POINT { public int X; public int Y; }
-    
+
     // ReSharper disable InconsistentNaming
     /// <summary>HWND_TOPMOST: 置顶窗口（在所有非置顶窗口上方），传入 SetWindowPos 的 hWndInsertAfter 参数</summary>
     private static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
@@ -43,8 +43,8 @@ public partial class MainWindow
     private const uint SWP_NO_SIZE = 0x0001;
     /// <summary>SWP_SHOW_WINDOW: 显示窗口</summary>
     private const uint SWP_SHOW_WINDOW = 0x0040;
-    
-    
+
+
     /// <summary>是否正在拖拽中（鼠标按下且移动超过阈值后置为 true）</summary>
     private bool _isDragging;
     /// <summary>鼠标按下时，光标在悬浮球窗口内的相对位置，用于判断是否移动超过了拖拽阈值</summary>
@@ -60,7 +60,7 @@ public partial class MainWindow
     /// <summary>菜单是否正在显示</summary>
     private bool _isMenuOpen;
 
-    
+
     public MainWindow()
     {
         LogService.Init("ClassToolkit");  // 设置日志名称
@@ -94,7 +94,7 @@ public partial class MainWindow
     /// 读取 data/tools.json 并构建菜单内容。仅启动时调用一次。
     /// </summary>
     private void BuildMenuFromJson()
-        // TODO 加日志
+    // TODO 加日志
     {
         var tools = LoadTools();
 
@@ -174,7 +174,7 @@ public partial class MainWindow
 
         return btn;
     }
-    
+
     /// <summary>定时刷新置顶的计时器，每 60s 触发一次</summary>
     private DispatcherTimer timer = new DispatcherTimer();
 
@@ -202,7 +202,7 @@ public partial class MainWindow
             SWP_NO_MOVE | SWP_NO_SIZE);
         timer.Start();
     }
-    
+
     /// <summary>
     /// 将方形窗口裁剪成圆形。
     /// WPF 的 Clip 属性可以接受任意 Geometry 来定义窗口的可视区域，
@@ -217,7 +217,7 @@ public partial class MainWindow
         EllipseGeometry circle = new EllipseGeometry(center, radius, radius);
         Clip = circle;
     }
-    
+
     /// <summary>
     /// 窗口首次加载时：读取配置 -> 裁剪圆形 -> 定位到屏幕右下角 -> 边界保护。
     /// WindowStartupLocation="Manual" 表示由代码手动指定位置。
@@ -391,7 +391,7 @@ public partial class MainWindow
         // 降级处理：如果 PresentationSource 不可用（极少见），直接返回物理像素
         return new Point(pt.X, pt.Y);
     }
-    
+
     /// <summary>
     /// 显示/切换弹出菜单。
     ///
