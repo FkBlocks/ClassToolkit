@@ -41,3 +41,7 @@ _ReSharper*/
 Thumbs.db
 Desktop.ini
 .vscode/
+
+# logs
+[Ll]og/*
+*.log

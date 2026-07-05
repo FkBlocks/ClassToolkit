@@ -3,15 +3,17 @@
 ## 架构概览
 
 ```
-ClassToolkit.Settings/
+ClassToolkit.Core/                          ← 所有项目共用
 ├── Services/
-│   └── ConfigService.cs            # 配置读写服务（JsonObject 字典 ↔ JSON 文件）
-├── MainWindow.xaml                 # UI 层（分类栏 + 内容页 + 应用按钮）
-└── MainWindow.xaml.cs              # UI 逻辑层（加载/保存/分类切换）
-
-ClassToolkit.Core/
+│   └── ConfigService.cs                    # 配置读写（JsonObject ↔ JSON）
 └── Utilities/
-    └── DataPathHelper.cs           # 跨项目共享：解析 data/ 目录路径
+    └── DataPathHelper.cs                   # 解析 data/ 目录路径
+
+ClassToolkit.Settings/                      ← 设置界面
+├── Services/
+│   └── ThemeService.cs                     # 明暗主题切换
+├── MainWindow.xaml                         # UI（分类栏 + 内容页 + 应用按钮）
+└── MainWindow.xaml.cs                      # UI 逻辑（加载/保存/分类切换）
 ```
 
 **没有 Model 层**。配置在内存中以 `System.Text.Json.Nodes.JsonObject` 字典形式存在，等价于 Python 的 `dict`。添加新设置项不需要修改任何类定义。
@@ -61,7 +63,7 @@ _config.Save(config);
 
 ### 接口 1：`ConfigService` — 读写配置字典
 
-**文件**：`Services/ConfigService.cs`
+**文件**：`ClassToolkit.Core/Services/ConfigService.cs`（所有项目共享）
 
 | 方法 | 签名 | 作用 |
 |---|---|---|
@@ -70,11 +72,30 @@ _config.Save(config);
 
 **此文件添加新配置项时无需修改。**
 
+**使用方式**：
+
+```csharp
+// ── 场景 1：Settings 内部（已有 _config 实例） ──
+var settings = _config.Load();
+string lang = settings["Language"]?.GetValue<string>() ?? "简体中文";
+
+// ── 场景 2：任意工具项目读取全局配置 ──
+using ClassToolkit.Core.Services;
+var config = new ConfigService().Load();
+int ballSize = config["BallSize"]?.GetValue<int>() ?? 60;
+bool autoStart = config["AutoStart"]?.GetValue<bool>() ?? false;
+
+// ── 场景 3：独立工具写入自己的 key ──
+var config = new ConfigService().Load();
+config["MyTool_LastUsed"] = DateTime.Now.ToString("O");
+new ConfigService().Save(config);
+```
+
 ---
 
 ### 接口 2：`LoadSettings()` — 字典 → UI 控件
 
-**文件**：`MainWindow.xaml.cs` 第 42–62 行
+**文件**：`ClassToolkit.Settings/MainWindow.xaml.cs` 第 42–62 行
 
 **作用**：启动/热重载时，用 `GetStr` / `GetBool` / `GetInt` 从字典取值填入 UI 控件。
 
@@ -96,7 +117,7 @@ MySlider.Value = GetInt(_settings, "MyNewKey", 80);
 
 ### 接口 3：`SaveSettings()` — UI 控件 → 字典
 
-**文件**：`MainWindow.xaml.cs` 第 67–85 行
+**文件**：`ClassToolkit.Settings/MainWindow.xaml.cs` 第 67–85 行
 
 **作用**：点击"应用"时，把每个控件的当前值写入字典对应 key。
 
@@ -110,7 +131,7 @@ _settings["MyNewKey"] = (int)MySlider.Value;
 
 ### 接口 4：控件值读写辅助
 
-**文件**：`MainWindow.xaml.cs` 第 117–128 行
+**文件**：`ClassToolkit.Settings/MainWindow.xaml.cs` 第 117–128 行
 
 | 方法 | 适用控件 | 说明 |
 |---|---|---|
@@ -125,7 +146,7 @@ _settings["MyNewKey"] = (int)MySlider.Value;
 
 **3 步**：
 
-**Step 1** — XAML 创建内容页（`MainWindow.xaml` 约 178 行起）：
+**Step 1** — XAML 创建内容页（`ClassToolkit.Settings/MainWindow.xaml` 约 178 行起）：
 
 ```xml
 <Grid x:Name="PageMyNew" Visibility="Collapsed">
@@ -168,11 +189,83 @@ PageMyNew.Visibility = Visibility.Collapsed;
 
 **此文件无需修改。** Debug 自动指向方案根目录，Release 指向 exe 旁。
 
+**使用方式**：
+
+```csharp
+using ClassToolkit.Core.Utilities;
+
+// ── 获取 data 目录下的任意文件路径 ──
+string toolsPath  = DataPathHelper.GetDataPath("tools.json");          // /方案根/data/tools.json
+string configPath = DataPathHelper.GetDataPath("config/config.json");  // /方案根/data/config/config.json
+string namesPath  = DataPathHelper.GetDataPath("students/names.txt");  // /方案根/data/students/names.txt
+
+// ── 从任意工具项目读取自己的数据文件 ──
+string myDataPath = DataPathHelper.GetDataPath("mytool/settings.json");
+var myConfig = JsonNode.Parse(File.ReadAllText(myDataPath))?.AsObject();
+```
+
+| 环境 | 自动解析为 |
+|---|---|
+| `dotnet run` / IDE 调试 | `D:\...\ClassToolkit\data\xxx` （方案根） |
+| 发布后双击 exe | `C:\...\发布目录\data\xxx` （exe 旁） |
+
 ---
 
-### 接口 7：`ApplySettings_Click` — 保存 + 热重载
+### 接口 7：`ThemeService` — 明暗主题切换
 
-**文件**：`MainWindow.xaml.cs` 第 130–149 行
+**文件**：`ClassToolkit.Settings/Services/ThemeService.cs`
+
+**作用**：维护浅色/深色两套 11 色调色板，`Apply(theme, Resources)` 将当前窗口的 `ResourceDictionary` 全部替换为目标色板。
+
+**使用方式**：
+
+```csharp
+using ClassToolkit.Settings.Services;
+
+// ── 启动时恢复已保存的主题 ──
+string savedTheme = config["Theme"]?.GetValue<string>() ?? "跟随系统";
+ThemeService.Apply(savedTheme, this.Resources);  // this = Window
+
+// ── 用户切换主题下拉框时即时生效 ──
+private void OnThemeChanged(object sender, SelectionChangedEventArgs e)
+{
+    string theme = GetComboBoxContent(CmbTheme);
+    ThemeService.Apply(theme, Resources);
+}
+
+// ── 切到深色 ──
+ThemeService.Apply("深色", Resources);
+
+// ── 切到浅色 ──
+ThemeService.Apply("浅色", Resources);
+
+// ── 跟随 Windows 系统设置 ──
+ThemeService.Apply("跟随系统", Resources);
+```
+
+**色板内容**（每个 key 对应一个 `SolidColorBrush` 资源）：
+
+| Key | 浅色值 | 深色值 | 用途 |
+|---|---|---|---|
+| `TitleBarBackground` | `#F0F0FF` | `#242438` | 标题栏背景 |
+| `SidebarBackground` | `#F0F0F2` | `#1E1E22` | 侧边栏背景 |
+| `SidebarHover` | `#E3E3E6` | `#2D2D32` | 侧边栏 hover |
+| `SidebarSelected` | `#D6D6DB` | `#35353A` | 侧边栏选中 |
+| `SidebarAccent` | `#4A7CF7` | `#5B8AF7` | 蓝色强调 |
+| `ContentBackground` | `#FAFAFC` | `#252528` | 内容区背景 |
+| `SeparatorColor` | `#D1D1D6` | `#3F3F46` | 分界线 |
+| `TextPrimary` | `#1D1D20` | `#F0F0F2` | 主文字 |
+| `TextSecondary` | `#6E6E78` | `#A0A0A8` | 次要文字 |
+| `ControlBorder` | `#D1D1D6` | `#45454A` | 控件边框 |
+| `ControlBackground` | `#FFFFFF` | `#3A3A40` | 控件背景 |
+
+**其他 WPF 工具项目想跟主题走**：直接在自己的 Window 上引用这些 DynamicResource key（如 `{DynamicResource TextPrimary}`），不需要调用 `ThemeService`——只要 Resources 里有同名 key 就会自动跟随。
+
+---
+
+### 接口 8：`ApplySettings_Click` — 保存 + 热重载
+
+**文件**：`ClassToolkit.Settings/MainWindow.xaml.cs` 第 130–149 行
 
 点击"应用"按钮 → `SaveSettings()` 写 JSON → `LoadSettings()` 从 JSON 反读回 UI（验证持久化）→ 按钮变灰 2 秒 → 显示 "✓ 设置已保存"。
 
@@ -214,6 +307,8 @@ _settings["BallOpacity"] = (int)SldBallOpacity.Value;
 插件不需要修改宿主任何代码。在自己的代码里：
 
 ```csharp
+using ClassToolkit.Core.Services;
+
 var configService = new ConfigService();  // 自动指向同一个 config.json
 var config = configService.Load();
 
@@ -245,10 +340,11 @@ configService.Save(config);
 
 | 文件 | 职责 | 添加设置时需改否 |
 |---|---|---|
-| `Services/ConfigService.cs` | JSON ↔ JsonObject | ❌ 不改 |
-| `MainWindow.xaml` | 分类栏 + 所有设置页 UI | ✅ 加控件 |
-| `MainWindow.xaml.cs` | LoadSettings / SaveSettings / 分类路由 | ✅ 各加一行 |
-| `Core/Utilities/DataPathHelper.cs` | 跨项目路径解析 | ❌ 不改 |
+| `ClassToolkit.Core/Services/ConfigService.cs` | JSON ↔ JsonObject（所有项目共享） | ❌ 不改 |
+| `ClassToolkit.Core/Utilities/DataPathHelper.cs` | 跨项目路径解析 | ❌ 不改 |
+| `ClassToolkit.Settings/Services/ThemeService.cs` | 明暗主题色板切换 | ❌ 不改 |
+| `ClassToolkit.Settings/MainWindow.xaml` | 分类栏 + 所有设置页 UI | ✅ 加控件 |
+| `ClassToolkit.Settings/MainWindow.xaml.cs` | LoadSettings / SaveSettings / 分类路由 | ✅ 各加一行 |
 
 ---
 

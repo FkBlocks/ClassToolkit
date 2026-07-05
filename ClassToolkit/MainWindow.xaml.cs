@@ -8,6 +8,7 @@ using System.Windows.Interop;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Windows.Threading;
+using ClassToolkit.Core.Services;
 
 
 namespace ClassToolkit;
@@ -17,6 +18,7 @@ namespace ClassToolkit;
 /// </summary>
 public partial class MainWindow
 {
+    
     /// <summary>设置窗口位置和层级（用于置顶）</summary>
     [DllImport("user32.dll")]
     static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
@@ -41,6 +43,8 @@ public partial class MainWindow
     private const uint SWP_NO_SIZE = 0x0001;
     /// <summary>SWP_SHOW_WINDOW: 显示窗口</summary>
     private const uint SWP_SHOW_WINDOW = 0x0040;
+    /// <summary>WHO: 当前程序的名称，用于日志</summary>
+    private const string WHO = "ClassToolkit";
     
     
     /// <summary>是否正在拖拽中（鼠标按下且移动超过阈值后置为 true）</summary>
@@ -57,12 +61,15 @@ public partial class MainWindow
     private Popup _menuPopup = null!;
     /// <summary>菜单是否正在显示</summary>
     private bool _isMenuOpen;
+
     
     public MainWindow()
     {
+        LogService.Init("ClassToolkit");  // 设置日志名称
         InitializeComponent();      // 加载 XAML 布局
         InitializeMenuPopup();      // 用代码构建 Popup 菜单
         this.Loaded += (_, _) => MakeSuperTopmost();  // 窗口加载完成后立即置顶
+        LogService.Info("启动成功");
     }
 
     /// <summary>
@@ -89,6 +96,7 @@ public partial class MainWindow
     /// 读取 data/tools.json 并构建菜单内容。仅启动时调用一次。
     /// </summary>
     private void BuildMenuFromJson()
+        // TODO 加日志
     {
         var tools = LoadTools();
 
@@ -213,11 +221,15 @@ public partial class MainWindow
     }
     
     /// <summary>
-    /// 窗口首次加载时：裁剪圆形 → 定位到屏幕右下角 → 边界保护。
+    /// 窗口首次加载时：读取配置 -> 裁剪圆形 -> 定位到屏幕右下角 -> 边界保护。
     /// WindowStartupLocation="Manual" 表示由代码手动指定位置。
     /// </summary>
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
+        // 加载所需配置
+        ConfigService configService = new ConfigService();
+        var config = configService.Load(new Dictionary<string, object?> { ["BallSize"] = 60 });
+
         UpdateClipToCircle();
 
         double screenWidth = SystemParameters.PrimaryScreenWidth;
@@ -236,13 +248,13 @@ public partial class MainWindow
     //  拖拽交互（三个事件的协作）
     //
     //  整体流程：
-    //  1. MouseLeftButtonDown  → ClickBall()        记录起点，开始鼠标捕获
-    //  2. MouseMove            → OnDragFloatBall()  超过阈值后，实时移动窗口（边界钳制）
-    //  3. MouseLeftButtonUp    → LeftClickUp()      释放捕获，判断是"点击"还是"拖拽结束"
+    //  1. MouseLeftButtonDown  -> ClickBall()        记录起点，开始鼠标捕获
+    //  2. MouseMove            -> OnDragFloatBall()  超过阈值后，实时移动窗口（边界钳制）
+    //  3. MouseLeftButtonUp    -> LeftClickUp()      释放捕获，判断是"点击"还是"拖拽结束"
     //
     //  关键设计：手动拖拽替代 DragMove()
     //  - WPF 内置的 DragMove() 无法限制窗口不超出屏幕
-    //  - 手动计算：拖拽起点 (窗口位置 + 鼠标屏幕位置) → MouseMove 时计算偏移量 → 钳制 → 写回 Left/Top
+    //  - 手动计算：拖拽起点 (窗口位置 + 鼠标屏幕位置) -> MouseMove 时计算偏移量 -> 钳制 -> 写回 Left/Top
     //  - 坐标获取：用 Win32 GetCursorPos 而不是 PointToScreen
     //    因为透明窗口 (AllowsTransparency=True) 的底层是分层窗口，PointToScreen 会漂移
     //  - 鼠标捕获：CaptureMouse() 确保鼠标移出窗口边界时仍能收到 MouseMove 事件
@@ -252,9 +264,9 @@ public partial class MainWindow
     /// 鼠标按下事件 —— 记录拖拽的起点信息，开始鼠标捕获。
     ///
     /// 为什么需要三个坐标：
-    /// - _startPoint: 鼠标在窗口内的相对位置 → 判断是否超过拖拽阈值（区分"点击"和"拖拽"）
-    /// - _dragStartMouseScreenPos: 鼠标的屏幕绝对坐标 → 后续 MouseMove 时计算鼠标移动的总偏移量
-    /// - _dragStartWindowPos: 窗口当前的屏幕坐标 → 偏移量 + 窗口起点 = 新窗口位置
+    /// - _startPoint: 鼠标在窗口内的相对位置 -> 判断是否超过拖拽阈值（区分"点击"和"拖拽"）
+    /// - _dragStartMouseScreenPos: 鼠标的屏幕绝对坐标 -> 后续 MouseMove 时计算鼠标移动的总偏移量
+    /// - _dragStartWindowPos: 窗口当前的屏幕坐标 -> 偏移量 + 窗口起点 = 新窗口位置
     /// </summary>
     private void ClickBall(object sender, MouseButtonEventArgs e)
     {
@@ -349,7 +361,7 @@ public partial class MainWindow
 
         if (!_isDragging)
         {
-            // 没拖拽 = 一次完整的点击 → 显示菜单
+            // 没拖拽 = 一次完整的点击 -> 显示菜单
             ShowMenu();
         }
         // 拖拽结束不需要额外处理，窗口位置已在 MouseMove 中实时更新
@@ -357,15 +369,11 @@ public partial class MainWindow
         _isDragging = false;
     }
 
-    // ============================================================
-    //  坐标工具
-    // ============================================================
-
     /// <summary>
     /// 获取鼠标光标的屏幕坐标，返回 WPF 设备无关像素 (DIP)。
     ///
     /// 调用链：
-    ///   Win32 GetCursorPos (物理像素) → TransformFromDevice (DIP 转换) → 返回 Point
+    ///   Win32 GetCursorPos (物理像素) -> TransformFromDevice (DIP 转换) -> 返回 Point
     /// </summary>
     /// <returns>鼠标在屏幕上的位置（WPF 设备无关像素坐标）</returns>
     private Point GetCursorScreenPos()
@@ -374,7 +382,7 @@ public partial class MainWindow
         GetCursorPos(out POINT pt);
 
         // 将物理像素转换为 WPF 的设备无关像素 (DIP)
-        // 例如在 150% 缩放屏幕上，物理像素 150 → DIP 100
+        // 例如在 150% 缩放屏幕上，物理像素 150 -> DIP 100
         var source = PresentationSource.FromVisual(this);
         if (source?.CompositionTarget != null)
         {
@@ -442,7 +450,8 @@ public partial class MainWindow
 
         if (!System.IO.File.Exists(fullPath))
         {
-            MessageBox.Show($"未找到工具: {toolName}");
+            LogService.Warn($"启动程序未找到: {fullPath}");
+            MessageBox.Show($"未找到工具: {toolName}, 请检查路径是否正确");
             return;
         }
 
@@ -452,6 +461,7 @@ public partial class MainWindow
         }
         catch (Exception ex)
         {
+            LogService.Error($"程序启动失败: 位于'{fullPath}'启动时发生 {ex.Message} 错误");
             MessageBox.Show($"启动失败: {ex.Message}");
         }
     }
@@ -462,6 +472,7 @@ public partial class MainWindow
         if (confirmed == true)
         {
             timer.Stop();
+            LogService.Info("程序退出");
             Application.Current.Shutdown();
         }
     }
@@ -545,7 +556,7 @@ public partial class MainWindow
 
             // 边界保护（与 ShowMenu 一致）：不超出屏幕四边
             if (dialogLeft + dialog.Width > SystemParameters.PrimaryScreenWidth)
-                dialogLeft = this.Left - dialog.Width - 5;  // 右侧不够 → 改放左侧
+                dialogLeft = this.Left - dialog.Width - 5;  // 右侧不够 -> 改放左侧
             if (dialogLeft < 0) dialogLeft = 5;
             if (dialogTop < 0) dialogTop = 5;
             if (dialogTop + dialog.ActualHeight > SystemParameters.PrimaryScreenHeight)

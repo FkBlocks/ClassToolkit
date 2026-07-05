@@ -47,14 +47,17 @@
         </Content>
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="Serilog" Version="4.3.1" />
+      <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+    </ItemGroup>
+
     <!-- 开发时 (Build)：将 RandomName 编译输出复制到 Tools\ClassToolkit.RandomName 子目录 -->
     <Target Name="CopyRandomNameTool" AfterTargets="Build">
         <ItemGroup>
             <RandomNameOutput Include="..\ClassToolkit.RandomName\bin\$(Configuration)\net10.0-windows\*.*" />
         </ItemGroup>
-        <Copy SourceFiles="@(RandomNameOutput)"
-              DestinationFolder="$(OutDir)Tools\ClassToolkit.RandomName"
-              SkipUnchangedFiles="true" />
+        <Copy SourceFiles="@(RandomNameOutput)" DestinationFolder="$(OutDir)Tools\ClassToolkit.RandomName" SkipUnchangedFiles="true" />
     </Target>
 
     <!-- 开发时 (Build)：将 CountDown 编译输出复制到 Tools\ClassToolkit.CountDown 子目录 -->
@@ -62,9 +65,7 @@
         <ItemGroup>
             <CountDownOutput Include="..\ClassToolkit.CountDown\bin\$(Configuration)\net10.0-windows\*.*" />
         </ItemGroup>
-        <Copy SourceFiles="@(CountDownOutput)"
-              DestinationFolder="$(OutDir)Tools\ClassToolkit.CountDown"
-              SkipUnchangedFiles="true" />
+        <Copy SourceFiles="@(CountDownOutput)" DestinationFolder="$(OutDir)Tools\ClassToolkit.CountDown" SkipUnchangedFiles="true" />
     </Target>
 
     <!-- 开发时 (Build)：将 VolumeRecovery 编译输出复制到 Tools\ClassToolkit.VolumeRecovery 子目录 -->
@@ -72,9 +73,7 @@
         <ItemGroup>
             <VolumeRecoveryOutput Include="..\ClassToolkit.VolumeRecovery\bin\$(Configuration)\net10.0-windows\*.*" />
         </ItemGroup>
-        <Copy SourceFiles="@(VolumeRecoveryOutput)"
-              DestinationFolder="$(OutDir)Tools\ClassToolkit.VolumeRecovery"
-              SkipUnchangedFiles="true" />
+        <Copy SourceFiles="@(VolumeRecoveryOutput)" DestinationFolder="$(OutDir)Tools\ClassToolkit.VolumeRecovery" SkipUnchangedFiles="true" />
     </Target>
 
     <!-- 开发时 (Build)：将 Settings 编译输出复制到 Tools\ClassToolkit.Settings 子目录 -->
@@ -82,9 +81,7 @@
         <ItemGroup>
             <SettingsOutput Include="..\ClassToolkit.Settings\bin\$(Configuration)\net10.0-windows\*.*" />
         </ItemGroup>
-        <Copy SourceFiles="@(SettingsOutput)"
-              DestinationFolder="$(OutDir)Tools\ClassToolkit.Settings"
-              SkipUnchangedFiles="true" />
+        <Copy SourceFiles="@(SettingsOutput)" DestinationFolder="$(OutDir)Tools\ClassToolkit.Settings" SkipUnchangedFiles="true" />
     </Target>
 
     <!-- 发布时 (Publish)：将 CountDown 输出复制到发布目录的 Tools 子目录，并清理 SDK 误复制到根目录的残留 -->
@@ -93,9 +90,7 @@
             <CountDownOutput Include="..\ClassToolkit.CountDown\bin\$(Configuration)\net10.0-windows\*.*" />
             <CountDownResidue Include="$(PublishDir)ClassToolkit.CountDown.*" />
         </ItemGroup>
-        <Copy SourceFiles="@(CountDownOutput)"
-              DestinationFolder="$(PublishDir)Tools\ClassToolkit.CountDown"
-              SkipUnchangedFiles="true" />
+        <Copy SourceFiles="@(CountDownOutput)" DestinationFolder="$(PublishDir)Tools\ClassToolkit.CountDown" SkipUnchangedFiles="true" />
         <Delete Files="@(CountDownResidue)" />
     </Target>
     
@@ -106,9 +101,7 @@
             <VolumeRecoveryOutput Include="..\ClassToolkit.VolumeRecovery\bin\$(Configuration)\net10.0-windows\*.*" />
             <VolumeRecoveryResidue Include="$(PublishDir)ClassToolkit.VolumeRecovery.*" />
         </ItemGroup>
-        <Copy SourceFiles="@(VolumeRecoveryOutput)"
-              DestinationFolder="$(PublishDir)Tools\ClassToolkit.VolumeRecovery"
-              SkipUnchangedFiles="true" />
+        <Copy SourceFiles="@(VolumeRecoveryOutput)" DestinationFolder="$(PublishDir)Tools\ClassToolkit.VolumeRecovery" SkipUnchangedFiles="true" />
         <Delete Files="@(VolumeRecoveryResidue)" />
     </Target>
 
@@ -119,9 +112,7 @@
             <!-- SDK 可能无视 Private=false 仍将依赖复制到发布根目录 -->
             <RandomNameResidue Include="$(PublishDir)ClassToolkit.RandomName.*" />
         </ItemGroup>
-        <Copy SourceFiles="@(RandomNameOutput)"
-              DestinationFolder="$(PublishDir)Tools\ClassToolkit.RandomName"
-              SkipUnchangedFiles="true" />
+        <Copy SourceFiles="@(RandomNameOutput)" DestinationFolder="$(PublishDir)Tools\ClassToolkit.RandomName" SkipUnchangedFiles="true" />
         <!-- 删除被 SDK 误复制到发布根目录的文件（正确的文件在 Tools 子目录中） -->
         <Delete Files="@(RandomNameResidue)" />
     </Target>
@@ -132,9 +123,7 @@
             <SettingsOutput Include="..\ClassToolkit.Settings\bin\$(Configuration)\net10.0-windows\*.*" />
             <SettingsResidue Include="$(PublishDir)ClassToolkit.Settings.*" />
         </ItemGroup>
-        <Copy SourceFiles="@(SettingsOutput)"
-              DestinationFolder="$(PublishDir)Tools\ClassToolkit.Settings"
-              SkipUnchangedFiles="true" />
+        <Copy SourceFiles="@(SettingsOutput)" DestinationFolder="$(PublishDir)Tools\ClassToolkit.Settings" SkipUnchangedFiles="true" />
         <Delete Files="@(SettingsResidue)" />
     </Target>
 
