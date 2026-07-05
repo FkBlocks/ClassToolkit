@@ -43,8 +43,6 @@ public partial class MainWindow
     private const uint SWP_NO_SIZE = 0x0001;
     /// <summary>SWP_SHOW_WINDOW: 显示窗口</summary>
     private const uint SWP_SHOW_WINDOW = 0x0040;
-    /// <summary>WHO: 当前程序的名称，用于日志</summary>
-    private const string WHO = "ClassToolkit";
     
     
     /// <summary>是否正在拖拽中（鼠标按下且移动超过阈值后置为 true）</summary>
