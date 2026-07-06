@@ -2,7 +2,7 @@
   "Language": "简体中文",
   "AutoStart": false,
   "CloseBehavior": "直接退出",
-  "Theme": "深色",
+  "Theme": "跟随系统",
   "BallSize": 60,
   "SeparatorColor": "#D1D1D6",
   "MenuFontSize": 14,
