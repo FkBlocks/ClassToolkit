@@ -1,0 +1,46 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ═══ 全局颜色键 · 浅色默认值 ═══ -->
+    <!-- ThemeService.Apply() 会按主题覆盖这些键，DynamicResource 自动跟随 -->
+    <SolidColorBrush x:Key="TitleBarBackground"  Color="#F0F0FF"/>
+    <SolidColorBrush x:Key="TitleBarButtonHover" Color="#E3E3E6"/>
+    <SolidColorBrush x:Key="SidebarBackground"   Color="#F0F0F2"/>
+    <SolidColorBrush x:Key="SidebarHover"        Color="#E3E3E6"/>
+    <SolidColorBrush x:Key="SidebarSelected"     Color="#D6D6DB"/>
+    <SolidColorBrush x:Key="SidebarAccent"       Color="#4A7CF7"/>
+    <SolidColorBrush x:Key="ContentBackground"   Color="#FAFAFC"/>
+    <SolidColorBrush x:Key="SeparatorColor"      Color="#D1D1D6"/>
+    <SolidColorBrush x:Key="TextPrimary"         Color="#1D1D20"/>
+    <SolidColorBrush x:Key="TextSecondary"       Color="#6E6E78"/>
+    <SolidColorBrush x:Key="ControlBorder"       Color="#D1D1D6"/>
+    <SolidColorBrush x:Key="ControlBackground"   Color="#FFFFFF"/>
+
+    <!-- ═══ 标题栏按钮统一样式 ═══ -->
+    <Style x:Key="TitleBarButtonStyle" TargetType="Button">
+        <Setter Property="Width" Value="46"/>
+        <Setter Property="Height" Value="40"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+        <Setter Property="FontSize" Value="16"/>
+        <Setter Property="FontFamily" Value="Microsoft YaHei UI"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd" Background="{TemplateBinding Background}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background"
+                                    Value="{DynamicResource TitleBarButtonHover}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>

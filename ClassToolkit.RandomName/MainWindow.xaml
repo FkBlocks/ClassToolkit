@@ -1,12 +1,24 @@
-﻿<Window x:Class="ClassToolkit.RandomName.MainWindow"
+﻿<ctrls:CustomWindow x:Class="ClassToolkit.RandomName.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ClassToolkit.RandomName"
+        xmlns:ctrls="clr-namespace:ClassToolkit.Core.Controls;assembly=ClassToolkit.Core"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="随机点名" Height="450" Width="800">
+
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="40"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <ctrls:TitleBar Grid.Row="0" Title="随机点名"/>
+
+        <Grid Grid.Row="1">
+
+        </Grid>
 
     </Grid>
-</Window>
+</ctrls:CustomWindow>

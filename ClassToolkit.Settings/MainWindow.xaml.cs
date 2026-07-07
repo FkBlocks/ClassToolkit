@@ -1,5 +1,5 @@
+using ClassToolkit.Core.Controls;
 using ClassToolkit.Core.Services;
-using ClassToolkit.Settings.Services;
 using System.Text.Json.Nodes;
 using System.Windows;
 using System.Windows.Controls;
@@ -8,7 +8,7 @@ using System.Windows.Media;
 
 namespace ClassToolkit.Settings;
 
-public partial class MainWindow : Window
+public partial class MainWindow : CustomWindow
 {
     private readonly ConfigService _config = new();
     private JsonObject _settings = null!;
@@ -66,7 +66,7 @@ public partial class MainWindow : Window
         TxtToolsDirectory.Text = GetStr(_settings, "ToolsDirectory", "Tools");
 
         // ── 主题应用（最后执行，覆盖所有颜色）──
-        ThemeService.Apply(GetStr(_settings, "Theme", "跟随系统"), Resources);
+        ThemeService.Apply(GetStr(_settings, "Theme", "跟随系统"));
     }
 
     /// <summary>
@@ -122,7 +122,7 @@ public partial class MainWindow : Window
     {
         if (_initializing) return;  // 构造函数阶段跳过，避免窗口未初始化时崩
         string theme = GetComboBoxContent(CmbTheme);
-        ThemeService.Apply(theme, Resources);
+        ThemeService.Apply(theme);
 
         // 同步更新分隔线（它不受 DynamicResource 直接绑定）
         ApplySeparatorColor(GetCurrentSeparatorColorHex());
@@ -152,28 +152,6 @@ public partial class MainWindow : Window
             return $"#{scb.Color.R:X2}{scb.Color.G:X2}{scb.Color.B:X2}";
         return "#D1D1D6";
     }
-
-    // ═══════════════ 标题栏 ═══════════════
-
-    private void TitleBar_Drag(object sender, MouseButtonEventArgs e)
-    {
-        if (e.ClickCount == 2)
-            WindowState = WindowState == WindowState.Maximized
-                ? WindowState.Normal
-                : WindowState.Maximized;
-        else
-            DragMove();
-    }
-
-    private void Minimize_Click(object sender, RoutedEventArgs e) =>
-        WindowState = WindowState.Minimized;
-
-    private void Maximize_Click(object sender, RoutedEventArgs e) =>
-        WindowState = WindowState == WindowState.Maximized
-            ? WindowState.Normal
-            : WindowState.Maximized;
-
-    private void Close_Click(object sender, RoutedEventArgs e) => Close();
 
     // ═══════════════ ComboBox 辅助 ═══════════════
 
