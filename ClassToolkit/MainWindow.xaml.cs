@@ -18,7 +18,7 @@ namespace ClassToolkit;
 /// </summary>
 public partial class MainWindow
 {
-
+    
     /// <summary>设置窗口位置和层级（用于置顶）</summary>
     [DllImport("user32.dll")]
     static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);

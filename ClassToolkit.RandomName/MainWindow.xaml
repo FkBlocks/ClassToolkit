@@ -6,19 +6,65 @@
         xmlns:local="clr-namespace:ClassToolkit.RandomName"
         xmlns:ctrls="clr-namespace:ClassToolkit.Core.Controls;assembly=ClassToolkit.Core"
         mc:Ignorable="d"
-        Title="随机点名" Height="450" Width="800">
+        WindowStartupLocation="CenterScreen"
+        Title="随机点名" Width="480" Height="270">
 
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="40"/>
+            <!-- 标题栏 -->
             <RowDefinition Height="*"/>
+            <!-- 主内容区 -->
         </Grid.RowDefinitions>
 
+        <!-- 标题栏 -->
         <ctrls:TitleBar Grid.Row="0" Title="随机点名"/>
 
-        <Grid Grid.Row="1">
+        <!-- 主内容：垂直居中，水平居中 -->
+        <StackPanel Grid.Row="1"
+                    VerticalAlignment="Top"
+                    HorizontalAlignment="Center"
+                    Margin="10">
 
-        </Grid>
+            <!-- 标签：点名个数 -->
+            <Label Content="点名个数"
+                   FontFamily="Microsoft Yahei"
+                   FontSize="30"
+                   HorizontalContentAlignment="Center"/>
 
+            <!-- 加减控制区：水平排列 -->
+            <StackPanel Orientation="Horizontal"
+                        Margin="0,20,0,0"
+                        HorizontalAlignment="Center">
+
+                <!-- 减号按钮 -->
+                <Button Content="-" Width="45" Height="45"
+                        FontFamily="Microsoft Yahei" FontSize="30"
+                        Click="MinusButtonClick"/>
+
+                <!-- 数字显示 -->
+                <TextBlock x:Name="ChoiceTimes" Text="1"
+                           FontFamily="Microsoft YaHei" FontSize="30"
+                           FontWeight="Bold"
+                           VerticalAlignment="Center"
+                           MinWidth="50"
+                           TextAlignment="Center"
+                           Margin="25,0,25,0"/>
+
+                <!-- 加号按钮 -->
+                <Button Content="+" Width="45" Height="45"
+                        FontFamily="Microsoft Yahei" FontSize="30"
+                        Click="AddButtonClick"/>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal"
+                        Margin="0,30,0,0"
+                        HorizontalAlignment="Center">
+                <Button Content="点名" Width="125" Height="35"
+                        FontFamily="Microsoft YaHei" FontSize="18"
+                        Click="Call"/>
+            </StackPanel>
+
+        </StackPanel>
     </Grid>
 </ctrls:CustomWindow>

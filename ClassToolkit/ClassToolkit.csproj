@@ -37,11 +37,13 @@
 
     <ItemGroup>
         <!-- 文件在解决方案根目录 data/ 下，用 Link 映射到输出目录 -->
-        <Content Include="..\data\tools.json">
+        <Content Include="..\data\tools.json"
+                 Condition="Exists('..\data\tools.json')">
             <Link>data\tools.json</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
-        <Content Include="..\data\config\config.json">
+        <Content Include="..\data\config\config.json"
+                 Condition="Exists('..\data\config\config.json')">
             <Link>data\config\config.json</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>

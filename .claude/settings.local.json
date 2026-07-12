@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet build *)",
+      "Bash(mv data *)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(taskkill //F //PID 22656)"
+    ]
+  }
+}

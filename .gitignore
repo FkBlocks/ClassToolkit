@@ -41,7 +41,7 @@ _ReSharper*/
 Thumbs.db
 Desktop.ini
 .vscode/
+.claude
 
-# logs
-[Ll]og/*
-*.log
+# data
+data/
