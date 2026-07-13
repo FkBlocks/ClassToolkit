@@ -15,8 +15,33 @@
 
         <ctrls:TitleBar Grid.Row="0" Title="倒计时"/>
 
-        <Grid Grid.Row="1">
+        <Grid Grid.Row="1" Margin="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
+            <!-- 设置区域 -->
+            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,20">
+                <Label Content="时" Margin="0,0,5,0"/>
+                <TextBox x:Name="HoursBox" Text="0" Width="40" TextAlignment="Center" Margin="0,0,10,0"/>
+                <Label Content="分" Margin="0,0,5,0"/>
+                <TextBox x:Name="MinutesBox" Text="0" Width="40" TextAlignment="Center" Margin="0,0,10,0"/>
+                <Label Content="秒" Margin="0,0,5,0"/>
+                <TextBox x:Name="SecondsBox" Text="10" Width="40" TextAlignment="Center"/>
+            </StackPanel>
+
+            <!-- 倒计时显示 -->
+            <TextBlock Grid.Row="1" x:Name="TimeDisplay" Text="00:00:10" 
+                       FontSize="72" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+            <!-- 控制按钮 -->
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
+                <Button x:Name="StartButton" Content="开始" Width="80" Height="30" Margin="0,0,10,0" Click="StartButton_Click"/>
+                <Button x:Name="PauseButton" Content="暂停" Width="80" Height="30" Margin="0,0,10,0" Click="PauseButton_Click" IsEnabled="False"/>
+                <Button x:Name="ResetButton" Content="重置" Width="80" Height="30" Click="ResetButton_Click"/>
+            </StackPanel>
         </Grid>
     </Grid>
 </ctrls:CustomWindow>

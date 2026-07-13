@@ -4,7 +4,7 @@
   "CloseBehavior": "直接退出",
   "Theme": "跟随系统",
   "BallSize": 60,
-  "SeparatorColor": "#D1D1D6",
+  "SeparatorColor": "#1D1D20",
   "MenuFontSize": 14,
   "ToolsJsonPath": "data/tools.json",
   "ToolLaunchMode": "由 Windows 决定（推荐）",
