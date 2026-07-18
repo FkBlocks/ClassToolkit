@@ -29,17 +29,15 @@ public partial class MainWindow : CustomWindow
         "小明", "小红", "小芳", "小虎"
     };
 
-    public List<string>? names;
+    public List<string>? Names { get; private set; }
     public int namesCount = 0;
 
     private int _count = DEFAULT_COUNT;
 
 
     /// <summary>
-    /// 减法按钮按下，计数器减一
+    /// 减法按钮按下，计数器减一，达到最小值，不操作
     /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
     private void MinusButtonClick(object sender, System.Windows.RoutedEventArgs e)
     {
         if (_count > MIN_COUNT) _count--;
@@ -47,13 +45,11 @@ public partial class MainWindow : CustomWindow
     }
 
     /// <summary>
-    /// 加法按钮按下，计数器加一
+    /// 加法按钮按下，计数器加一，如果达到名单总数，不操作
     /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
     private void AddButtonClick(object sender, System.Windows.RoutedEventArgs e)
     {
-        _count++;
+        if (_count < namesCount) _count++;
         UpdateDisplay();
     }
 
@@ -69,20 +65,22 @@ public partial class MainWindow : CustomWindow
     /// <summary>
     /// 点名逻辑
     /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
     private void Call(object sender, System.Windows.RoutedEventArgs e)
     {
 
     }
 
+    /// <summary>
+    /// 读取名单，并统计总数
+    /// </summary>
     private void LoadName()
     {
 
         try
         {
-            names = File.ReadAllLines(namesPath, Encoding.UTF8).ToList();
-            if (names.SequenceEqual(DefaultName))
+            Names = File.ReadAllLines(namesPath, Encoding.UTF8).ToList();
+            namesCount = Names.Count;
+            if (Names.SequenceEqual(DefaultName))
             {
                 LogService.Info("使用默认名单");
                 MessageBox.Show("你当前使用的是默认名单！\n" +
@@ -91,8 +89,6 @@ public partial class MainWindow : CustomWindow
                     "默认名单", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
-            namesCount = names.Count;
-
         }
         catch (Exception ex)
         {
