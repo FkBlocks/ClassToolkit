@@ -7,7 +7,8 @@
         xmlns:ctrls="clr-namespace:ClassToolkit.Core.Controls;assembly=ClassToolkit.Core"
         mc:Ignorable="d"
         WindowStartupLocation="CenterScreen"
-        Title="随机点名" Width="480" Height="270">
+        Background="{DynamicResource ContentBackground}"
+        Title="随机点名" Width="540" Height="320">
 
     <Grid>
         <Grid.RowDefinitions>
@@ -15,6 +16,8 @@
             <!-- 标题栏 -->
             <RowDefinition Height="*"/>
             <!-- 主内容区 -->
+            <RowDefinition Height="Auto"/>
+            <!-- 底部模式切换 -->
         </Grid.RowDefinitions>
 
         <!-- 标题栏 -->
@@ -30,6 +33,7 @@
             <Label Content="点名个数"
                    FontFamily="Microsoft Yahei"
                    FontSize="30"
+                   Foreground="{DynamicResource TextPrimary}"
                    HorizontalContentAlignment="Center"/>
 
             <!-- 加减控制区：水平排列 -->
@@ -40,12 +44,16 @@
                 <!-- 减号按钮 -->
                 <Button Content="-" Width="45" Height="45"
                         FontFamily="Microsoft Yahei" FontSize="30"
+                        Foreground="{DynamicResource TextPrimary}"
+                        Background="{DynamicResource ControlBackground}"
+                        BorderBrush="{DynamicResource ControlBorder}"
                         Click="MinusButtonClick"/>
 
                 <!-- 数字显示 -->
                 <TextBlock x:Name="ChoiceTimes" Text="1"
                            FontFamily="Microsoft YaHei" FontSize="30"
                            FontWeight="Bold"
+                           Foreground="{DynamicResource TextPrimary}"
                            VerticalAlignment="Center"
                            MinWidth="50"
                            TextAlignment="Center"
@@ -54,6 +62,9 @@
                 <!-- 加号按钮 -->
                 <Button Content="+" Width="45" Height="45"
                         FontFamily="Microsoft Yahei" FontSize="30"
+                        Foreground="{DynamicResource TextPrimary}"
+                        Background="{DynamicResource ControlBackground}"
+                        BorderBrush="{DynamicResource ControlBorder}"
                         Click="AddButtonClick"/>
             </StackPanel>
 
@@ -62,9 +73,60 @@
                         HorizontalAlignment="Center">
                 <Button Content="点名" Width="125" Height="35"
                         FontFamily="Microsoft YaHei" FontSize="18"
-                        Click="Call"/>
+                        Foreground="{DynamicResource TextPrimary}"
+                        Background="{DynamicResource ControlBackground}"
+                        BorderBrush="{DynamicResource ControlBorder}"
+                        Click="Call_Click"/>
             </StackPanel>
 
         </StackPanel>
+
+        <!-- 底部模式切换：点名字 / 点学号 -->
+        <Border Grid.Row="2"
+                Background="{DynamicResource ContentBackground}"
+                BorderBrush="{DynamicResource SeparatorColor}"
+                BorderThickness="0,1,0,0"
+                Padding="0,10,0,14">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <!-- 分段选择器容器 -->
+                <Border BorderBrush="{DynamicResource ControlBorder}"
+                        BorderThickness="1"
+                        CornerRadius="6"
+                        Background="Transparent">
+                    <StackPanel Orientation="Horizontal">
+                        <!-- 点名字 -->
+                        <Border x:Name="BtnPickNameBorder"
+                                CornerRadius="5,0,0,5"
+                                Background="Transparent"
+                                Padding="0">
+                            <Button x:Name="BtnPickName"
+                                    Content="点名字"
+                                    Width="100" Height="32"
+                                    FontFamily="Microsoft YaHei" FontSize="13"
+                                    Foreground="{DynamicResource TextPrimary}"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Cursor="Hand"
+                                    Click="OnPickModeChanged"/>
+                        </Border>
+                        <!-- 点学号 -->
+                        <Border x:Name="BtnPickIdBorder"
+                                CornerRadius="0,5,5,0"
+                                Background="Transparent"
+                                Padding="0">
+                            <Button x:Name="BtnPickId"
+                                    Content="点学号"
+                                    Width="100" Height="32"
+                                    FontFamily="Microsoft YaHei" FontSize="13"
+                                    Foreground="{DynamicResource TextPrimary}"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Cursor="Hand"
+                                    Click="OnPickModeChanged"/>
+                        </Border>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Border>
     </Grid>
 </ctrls:CustomWindow>
