@@ -1,104 +1,54 @@
-using System;
+using ClassToolkit.Core.Controls;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Threading;
 
-namespace ClassToolkit.CountDown
+namespace ClassToolkit.CountDown;
+
+/// <summary>
+/// 倒计时调节窗口。启动时显示，提供时/分/秒三轮盘和开始/重置按钮。
+/// 点击"开始倒计时"后隐藏自身并打开全屏倒计时展示窗口。
+/// </summary>
+public partial class MainWindow : CustomWindow
 {
-    public partial class MainWindow
+    /// <summary>
+    /// 初始化调节窗口。
+    /// </summary>
+    public MainWindow()
     {
-        private DispatcherTimer _timer;
-        private TimeSpan _remainingTime;
-        private TimeSpan _initialTime;
-        private bool _isRunning;
+        InitializeComponent();
+    }
 
-        public MainWindow()
+    /// <summary>
+    /// 重置按钮：将时/分/秒三个轮盘全部归零。
+    /// </summary>
+    private void ResetButton_Click(object sender, RoutedEventArgs e)
+    {
+        HourWheel.Value = 0;
+        MinuteWheel.Value = 0;
+        SecondWheel.Value = 0;
+    }
+
+    /// <summary>
+    /// 开始倒计时：校验时间 > 0 后隐藏调节窗口，
+    /// 以模态方式打开全屏倒计时展示窗口，关闭后恢复调节窗口。
+    /// </summary>
+    private void StartButton_Click(object sender, RoutedEventArgs e)
+    {
+        var time = new System.TimeSpan(
+            HourWheel.Value,
+            MinuteWheel.Value,
+            SecondWheel.Value);
+
+        if (time.TotalSeconds <= 0)
         {
-            InitializeComponent();
-            _timer = new DispatcherTimer();
-            _timer.Interval = TimeSpan.FromSeconds(1);
-            _timer.Tick += Timer_Tick;
-
-            // 初始化显示
-            UpdateDisplayFromInput();
+            MessageBox.Show("请设置至少 1 秒的倒计时。", "提示",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
         }
 
-        private void UpdateDisplayFromInput()
-        {
-            try
-            {
-                int hours = int.TryParse(HoursBox.Text, out int h) ? h : 0;
-                int minutes = int.TryParse(MinutesBox.Text, out int m) ? m : 0;
-                int seconds = int.TryParse(SecondsBox.Text, out int s) ? s : 0;
-
-                _initialTime = new TimeSpan(hours, minutes, seconds);
-                _remainingTime = _initialTime;
-                TimeDisplay.Text = _initialTime.ToString(@"hh\:mm\:ss");
-            }
-            catch
-            {
-                TimeDisplay.Text = "00:00:00";
-            }
-        }
-
-        private void Timer_Tick(object sender, EventArgs e)
-        {
-            if (_remainingTime.TotalSeconds <= 0)
-            {
-                _timer.Stop();
-                _isRunning = false;
-                UpdateButtons(false);
-                MessageBox.Show("倒计时结束！", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
-
-            _remainingTime = _remainingTime.Subtract(TimeSpan.FromSeconds(1));
-            TimeDisplay.Text = _remainingTime.ToString(@"hh\:mm\:ss");
-        }
-
-        private void UpdateButtons(bool running)
-        {
-            StartButton.IsEnabled = !running;
-            PauseButton.IsEnabled = running;
-            ResetButton.IsEnabled = true;
-            // 设置输入框在运行时不可编辑（可选）
-            HoursBox.IsEnabled = !running;
-            MinutesBox.IsEnabled = !running;
-            SecondsBox.IsEnabled = !running;
-        }
-
-        private void StartButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (!_isRunning)
-            {
-                // 如果剩余时间为0，则从初始值重新开始
-                if (_remainingTime.TotalSeconds <= 0)
-                {
-                    _remainingTime = _initialTime;
-                    TimeDisplay.Text = _remainingTime.ToString(@"hh\:mm\:ss");
-                }
-                _timer.Start();
-                _isRunning = true;
-                UpdateButtons(true);
-            }
-        }
-
-        private void PauseButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (_isRunning)
-            {
-                _timer.Stop();
-                _isRunning = false;
-                UpdateButtons(false);
-            }
-        }
-
-        private void ResetButton_Click(object sender, RoutedEventArgs e)
-        {
-            _timer.Stop();
-            _isRunning = false;
-            UpdateDisplayFromInput(); // 重置为输入框的值
-            UpdateButtons(false);
-        }
+        Hide();
+        var countDownWindow = new CountDownWindow(time);
+        countDownWindow.Owner = this;
+        countDownWindow.ShowDialog();
+        Show();
     }
 }
