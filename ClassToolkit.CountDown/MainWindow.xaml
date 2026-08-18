@@ -32,13 +32,19 @@
                        HorizontalAlignment="Center"
                        Margin="0,0,0,24"/>
 
-            <!-- 轮盘区域：HH : MM : SS -->
-            <Border BorderBrush="{DynamicResource ControlBorder}"
+            <!-- 轮盘区域：HH : MM : SS（整个区域都是滑动热区） -->
+            <Border x:Name="WheelArea"
+                    BorderBrush="{DynamicResource ControlBorder}"
                     BorderThickness="1"
                     CornerRadius="10"
                     Background="{DynamicResource ControlBackground}"
                     Padding="16,20,16,20"
-                    HorizontalAlignment="Center">
+                    HorizontalAlignment="Center"
+                    PreviewMouseLeftButtonDown="WheelArea_PreviewMouseLeftButtonDown"
+                    PreviewMouseMove="WheelArea_PreviewMouseMove"
+                    PreviewMouseLeftButtonUp="WheelArea_PreviewMouseLeftButtonUp"
+                    MouseWheel="WheelArea_MouseWheel"
+                    LostMouseCapture="WheelArea_LostMouseCapture">
                 <StackPanel Orientation="Horizontal">
                     <!-- 小时 -->
                     <StackPanel>
