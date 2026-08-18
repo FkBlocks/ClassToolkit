@@ -24,4 +24,16 @@ public partial class App : Application
         base.OnStartup(e);
         DataFileInitializer.Ensure();
     }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        if (_appMutex != null)
+        {
+            _appMutex.ReleaseMutex();
+            _appMutex.Dispose();
+            _appMutex = null;
+        }
+
+        base.OnExit(e);
+    }
 }
