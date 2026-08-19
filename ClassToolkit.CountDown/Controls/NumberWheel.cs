@@ -51,6 +51,17 @@ public class NumberWheel : FrameworkElement
     /// <summary>数字格式化字符串</summary>
     public string Format { get => (string)GetValue(FormatProperty); set => SetValue(FormatProperty, value); }
 
+    /// <summary>
+    /// 数字横向排版方向（3D 透视用）：1 = 靠右，0 = 居中，-1 = 靠左。
+    /// 左侧轮盘设 1、中间设 0、右侧设 -1，配合透视缩放/灰度营造真实轮盘效果。
+    /// </summary>
+    public static readonly DependencyProperty TextBiasProperty =
+        DependencyProperty.Register(nameof(TextBias), typeof(double), typeof(NumberWheel),
+            new FrameworkPropertyMetadata(0.0, FrameworkPropertyMetadataOptions.AffectsRender));
+
+    /// <summary>数字横向排版方向（-1 靠左，0 居中，1 靠右）</summary>
+    public double TextBias { get => (double)GetValue(TextBiasProperty); set => SetValue(TextBiasProperty, value); }
+
     // ── 动画状态 ────────────────────────────
 
     private double _displayOffset;       // 当前视觉偏移量（相对于 _lastValue，单位：格）
@@ -73,18 +84,28 @@ public class NumberWheel : FrameworkElement
 
     // ── 外观常量 ────────────────────────────
 
-    private const double ITEM_HEIGHT = 42;       // 每个数字槽的高度
+    private const double ITEM_HEIGHT = 38;       // 每个数字槽的高度（越小越紧凑）
     private const int VISIBLE_SLOTS = 5;         // 可见槽位数（奇数，中间为选中）
     private const int HALF_SLOTS = VISIBLE_SLOTS / 2;
     private const double CENTER_FONT = 30;       // 中心选中数字字号
     private const double ADJACENT_FONT = 14;     // 紧邻数字字号
     private const double EDGE_FONT = 11;         // 边缘数字字号
-    private const double WHEEL_WIDTH = 100;
+    private const double WHEEL_WIDTH = 90;
+
+    // ── 3D 透视外观常量 ─────────────────────
+
+    private const double BASE_OFFSET = 10;             // 偏置轮盘的基础横向偏移（px）
+    private const double ARC_SHIFT = 30;               // 弧面横向偏移幅度（边缘最大，px）
+    private const double PERSPECTIVE_ANGLE_MAX = 1.25; // 边缘最大视角（弧度，约 72°）
+    private const double PERSPECTIVE_FALLOFF = 0.8;    // 字号衰减（越小越柔和）
+    private const byte PERSPECTIVE_GRAY = 0x9A;         // 远距离数字的目标灰度值
 
     // ── 物理常量（真实转盘式惯性手感）──────────
 
     private const double FLING_KICK = 1.0;       // 松手惯性初速度倍率（1 = 完全跟手）
     private const double FLING_FRICTION = 3.0;   // 指数摩擦系数（1/秒，越小滚得越久、停得越绵长）
+    private const double FLING_DECAY = 4.0;      // 指针静止时速度衰减（1/秒，防止精确拖动后滑走）
+    private const double FLING_MIN_SPEED = 1.0;  // 松手速度低于该值（格/秒）时不做惯性滚动
     private const double SNAP_SPEED = 0.05;      // 速度低于该值（格/秒）时转入落位缓动
 
     /// <summary>
@@ -196,11 +217,17 @@ public class NumberWheel : FrameworkElement
     {
         if (!_isDragging) return;
 
-        // 采样指针瞬时速度（格/秒，上滑为正）：只在指针明显移动时采样并做指数平滑，
-        // 这样松手前指针即使停住，甩动速度也不会被洗掉。
+        double now = _clock.Elapsed.TotalSeconds;
+
+        // 指针静止时速度按指数衰减：停下来片刻，甩动速度就会被"洗掉"，
+        // 从而区分"精确拖动到位后松手"（不会滑走）和"甩动后立刻松手"（保留惯性）。
+        double idle = now - _dragLastSeconds;
+        if (idle > 0.01)
+            _dragVelocity *= Math.Exp(-FLING_DECAY * idle);
+
+        // 采样指针瞬时速度（格/秒，上滑为正）：只在指针明显移动时采样并做指数平滑
         if (Math.Abs(pointerY - _dragLastY) > 0.5)
         {
-            double now = _clock.Elapsed.TotalSeconds;
             double sampleDt = now - _dragLastSeconds;
             if (sampleDt > 0.001)
             {
@@ -233,6 +260,14 @@ public class NumberWheel : FrameworkElement
         _displayOffset = total - center;
         _lastValue = center;
         Value = Wrap(center);   // 回调里中心与新值环绕差为 0 → 直接跳过，速度不受影响
+
+        // 松手前的最后一段静止时间也做衰减 + 低速死区：
+        // 拖到位后停一会儿再松手，轮盘就稳稳停在目标，不会继续滑走。
+        double idle = _clock.Elapsed.TotalSeconds - _dragLastSeconds;
+        if (idle > 0.02)
+            _dragVelocity *= Math.Exp(-FLING_DECAY * idle);
+        if (Math.Abs(_dragVelocity) < FLING_MIN_SPEED)
+            _dragVelocity = 0;
 
         // 以松手时的瞬时速度进入惯性滚动
         _velocity = _dragVelocity * FLING_KICK;
@@ -310,8 +345,9 @@ public class NumberWheel : FrameworkElement
     }
 
     /// <summary>
-    /// 自绘渲染。以 _lastValue + _displayOffset 为中心，
-    /// 上下各延伸 HALF_SLOTS+1 个数字，按距离缩放字号和透明度。
+    /// 自绘渲染。以 _lastValue + _displayOffset 为中心，上下各延伸 HALF_SLOTS+1 个数字。
+    /// 3D 透视：数字按与中心的距离做字号缩放、灰度渐变、透明度渐隐，
+    /// 并按 TextBias 整体偏移 + 逐数字弧面位移（只移动、不变形）。
     /// </summary>
     protected override void OnRender(DrawingContext dc)
     {
@@ -321,7 +357,6 @@ public class NumberWheel : FrameworkElement
         var typeface = new Typeface("Microsoft YaHei");
         var accentBrush = GetAccentBrush();
         var textBrush = GetTextBrush();
-        var dimBrush = GetDimBrush();
 
         double totalDisplay = _lastValue + _displayOffset;
         int centerVal = (int)Math.Round(totalDisplay);
@@ -335,51 +370,38 @@ public class NumberWheel : FrameworkElement
                 continue;
 
             double dist = Math.Abs(val - totalDisplay);
-            double opacity, fontSize;
 
-            if (dist < 0.5)
-            {
-                double t = dist / 0.5;
-                fontSize = CENTER_FONT - (CENTER_FONT - ADJACENT_FONT) * t * t;
-                opacity = 1.0 - 0.4 * t;
-            }
-            else if (dist < 2.5)
-            {
-                double t = (dist - 0.5) / 2.0;
-                fontSize = ADJACENT_FONT - (ADJACENT_FONT - EDGE_FONT) * t;
-                opacity = 0.6 - 0.35 * t;
-            }
-            else
-            {
-                fontSize = EDGE_FONT;
-                opacity = 0.25;
-            }
+            // ── 3D 透视参数：距离中心越远，等效视角越大 ──
+            double t = Math.Min(dist / (HALF_SLOTS + 1.0), 1.0);
+            double angle = t * PERSPECTIVE_ANGLE_MAX;
+            double cosA = Math.Cos(angle);
 
-            // 循环轮盘：所有数字都有效，按 [Minimum, Maximum] 环绕显示
+            // 高度方向字号衰减（柔和，避免显得很小）
+            double scale = Math.Pow(1.0 - t, PERSPECTIVE_FALLOFF);
+            double fontSize = Math.Max(CENTER_FONT * scale, EDGE_FONT * 0.7);
+
+            // 透明度渐隐
+            double opacity = 1.0 - 0.65 * t * t;
+
+            // 灰度阶：中心用强调色，向外从主文字色渐变成灰色
+            Brush fg = dist < 0.5 ? accentBrush : BlendToGray(textBrush, t);
+
             string text = Wrap(val).ToString(Format);
-            Brush fg = dist < 0.6 ? accentBrush
-                     : dist < 1.5 ? textBrush
-                     : dimBrush;
-
             var ft = new FormattedText(text,
                 System.Globalization.CultureInfo.CurrentCulture,
                 FlowDirection.LeftToRight,
                 typeface, fontSize, fg,
                 VisualTreeHelper.GetDpi(this).PixelsPerDip);
 
-            double x = (ActualWidth - ft.Width) / 2.0;
+            // 个性化位置：居中为基准，TextBias 让轮盘整体向左/右偏，
+            // 离中心越远的数字横向偏移越大（弧面透视）——只移动、不拉伸字形
+            double x = (ActualWidth - ft.Width) / 2.0
+                     + TextBias * (BASE_OFFSET + ARC_SHIFT * (1.0 - cosA));
+
             dc.PushOpacity(opacity);
             dc.DrawText(ft, new Point(x, y - ft.Height / 2.0));
             dc.Pop();
         }
-
-        // 中心选中区域指示线
-        var linePen = new Pen(
-            new SolidColorBrush(Color.FromArgb(0x28, 0x00, 0x00, 0x00)), 1);
-        double lineY1 = centerY - ITEM_HEIGHT / 2.0;
-        double lineY2 = centerY + ITEM_HEIGHT / 2.0;
-        dc.DrawLine(linePen, new Point(6, lineY1), new Point(ActualWidth - 6, lineY1));
-        dc.DrawLine(linePen, new Point(6, lineY2), new Point(ActualWidth - 6, lineY2));
     }
 
     /// <summary>
@@ -407,6 +429,18 @@ public class NumberWheel : FrameworkElement
     {
         try { return (Brush)Application.Current.FindResource("TextSecondary"); }
         catch { return new SolidColorBrush(Color.FromRgb(0x99, 0x99, 0x99)); }
+    }
+
+    /// <summary>
+    /// 将文字色按 t(0~1) 渐变成灰色，用于远距离数字的灰度阶。
+    /// </summary>
+    private Brush BlendToGray(Brush source, double t)
+    {
+        var c = ((SolidColorBrush)source).Color;
+        return new SolidColorBrush(Color.FromRgb(
+            (byte)(c.R + (PERSPECTIVE_GRAY - c.R) * t),
+            (byte)(c.G + (PERSPECTIVE_GRAY - c.G) * t),
+            (byte)(c.B + (PERSPECTIVE_GRAY - c.B) * t)));
     }
 
     /// <summary>循环取值：把任意整数环绕到 [Minimum, Maximum] 区间。</summary>

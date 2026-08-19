@@ -43,6 +43,8 @@ public partial class MainWindow
     private const uint SWP_NO_SIZE = 0x0001;
     /// <summary>SWP_SHOW_WINDOW: 显示窗口</summary>
     private const uint SWP_SHOW_WINDOW = 0x0040;
+    /// <summary>SWP_NOACTIVATE: 只调整 Z 序，不激活窗口、不抢焦点</summary>
+    private const uint SWP_NOACTIVATE = 0x0010;
 
 
     /// <summary>是否正在拖拽中（鼠标按下且移动超过阈值后置为 true）</summary>
@@ -193,13 +195,15 @@ public partial class MainWindow
         SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
             SWP_NO_MOVE | SWP_NO_SIZE | SWP_SHOW_WINDOW);
 
-        // 每 60000ms(60s) 重新置顶，防止被其他置顶窗口覆盖
+        // 每 500ms 重新置顶，防止被其他置顶窗口覆盖。
+        // 必须带 SWP_NOACTIVATE：否则每次刷新都会把悬浮球激活，
+        // 打断"确认退出"等对话框的焦点，导致要点很多下。
         timer = new DispatcherTimer
         {
             Interval = TimeSpan.FromMilliseconds(500)
         };
         timer.Tick += (_, _) => SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
-            SWP_NO_MOVE | SWP_NO_SIZE);
+            SWP_NO_MOVE | SWP_NO_SIZE | SWP_NOACTIVATE);
         timer.Start();
     }
 
@@ -564,8 +568,16 @@ public partial class MainWindow
             dialog.Top = dialogTop;
         };
 
-        // 模态显示，阻塞直到用户点击按钮
-        dialog.ShowDialog();
+        // 模态显示：期间暂停 500ms 置顶定时器，彻底排除对话框与悬浮球的 Z 序/焦点干扰
+        timer.Stop();
+        try
+        {
+            dialog.ShowDialog();
+        }
+        finally
+        {
+            timer.Start();
+        }
         return dialogResult;
     }
 

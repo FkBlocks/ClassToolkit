@@ -8,8 +8,78 @@
         mc:Ignorable="d"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource ContentBackground}"
-        Title="倒计时" Width="520" Height="460"
-        MinWidth="420" MinHeight="360">
+        Title="倒计时" Width="480" Height="360"
+        MinWidth="640" MinHeight="420">
+
+    <Window.Resources>
+        <!-- 统一的圆角按钮样式：重置 / 开始倒计时共用 -->
+        <Style x:Key="ToolButton" TargetType="Button">
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="FontFamily" Value="Microsoft YaHei"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="Background" Value="{DynamicResource ControlBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ControlBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.7"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 重写 ToolButton 样式，创建圆形按钮 -->
+        <Style x:Key="RoundToolButton" TargetType="Button" BasedOn="{StaticResource ToolButton}">
+            <Setter Property="Height" Value="38"/>
+            <!-- 重写模板 -->
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="22">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.7"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
@@ -20,138 +90,86 @@
         <!-- 标题栏 -->
         <ctrls:TitleBar Grid.Row="0" Title="倒计时"/>
 
-        <!-- 主内容 -->
+        <!-- 主内容：轮盘顶部距离上边 25px，水平居中 -->
         <StackPanel Grid.Row="1"
-                    VerticalAlignment="Center"
-                    HorizontalAlignment="Center">
-
-            <!-- 提示文字 -->
-            <TextBlock Text="设置倒计时时间"
-                       FontFamily="Microsoft YaHei" FontSize="16"
-                       Foreground="{DynamicResource TextSecondary}"
-                       HorizontalAlignment="Center"
-                       Margin="0,0,0,24"/>
-
-            <!-- 轮盘区域：HH : MM : SS（整个区域都是滑动热区） -->
-            <Border x:Name="WheelArea"
-                    BorderBrush="{DynamicResource ControlBorder}"
-                    BorderThickness="1"
-                    CornerRadius="10"
-                    Background="{DynamicResource ControlBackground}"
-                    Padding="16,20,16,20"
+                    VerticalAlignment="Top"
                     HorizontalAlignment="Center"
-                    PreviewMouseLeftButtonDown="WheelArea_PreviewMouseLeftButtonDown"
-                    PreviewMouseMove="WheelArea_PreviewMouseMove"
-                    PreviewMouseLeftButtonUp="WheelArea_PreviewMouseLeftButtonUp"
-                    MouseWheel="WheelArea_MouseWheel"
-                    LostMouseCapture="WheelArea_LostMouseCapture">
-                <StackPanel Orientation="Horizontal">
-                    <!-- 小时 -->
-                    <StackPanel>
-                        <controls:NumberWheel x:Name="HourWheel"
-                                              Minimum="0" Maximum="23"
-                                              Value="0"/>
-                        <TextBlock Text="时"
-                                   FontFamily="Microsoft YaHei" FontSize="12"
-                                   Foreground="{DynamicResource TextSecondary}"
-                                   HorizontalAlignment="Center"
-                                   Margin="0,6,0,0"/>
-                    </StackPanel>
+                    Margin="0,25,0,0">
 
-                    <!-- 分隔符 -->
-                    <TextBlock Text=":"
-                               FontFamily="Microsoft YaHei" FontSize="36"
-                               FontWeight="Bold"
-                               Foreground="{DynamicResource TextPrimary}"
-                               VerticalAlignment="Center"
-                               Margin="4,0,4,0"/>
+            <!-- 轮盘区：直接铺在窗口背景上，无外框；整行都是滑动热区 -->
+            <StackPanel x:Name="WheelArea"
+                        Orientation="Horizontal"
+                        Background="Transparent"
+                        HorizontalAlignment="Center"
+                        PreviewMouseLeftButtonDown="WheelArea_PreviewMouseLeftButtonDown"
+                        PreviewMouseMove="WheelArea_PreviewMouseMove"
+                        PreviewMouseLeftButtonUp="WheelArea_PreviewMouseLeftButtonUp"
+                        MouseWheel="WheelArea_MouseWheel"
+                        LostMouseCapture="WheelArea_LostMouseCapture">
 
-                    <!-- 分钟 -->
-                    <StackPanel>
-                        <controls:NumberWheel x:Name="MinuteWheel"
-                                              Minimum="0" Maximum="59"
-                                              Value="0"/>
-                        <TextBlock Text="分"
-                                   FontFamily="Microsoft YaHei" FontSize="12"
-                                   Foreground="{DynamicResource TextSecondary}"
-                                   HorizontalAlignment="Center"
-                                   Margin="0,6,0,0"/>
-                    </StackPanel>
+                <!-- 小时 -->
+                <controls:NumberWheel x:Name="HourWheel"
+                                      Minimum="0" Maximum="23"
+                                      Value="0"
+                                      TextBias="1"/>
 
-                    <!-- 分隔符 -->
-                    <TextBlock Text=":"
-                               FontFamily="Microsoft YaHei" FontSize="36"
-                               FontWeight="Bold"
-                               Foreground="{DynamicResource TextPrimary}"
-                               VerticalAlignment="Center"
-                               Margin="4,0,4,0"/>
+                <!-- 分隔符（紧贴两侧轮盘） -->
+                <TextBlock Text=":"
+                           FontFamily="Microsoft YaHei" FontSize="36"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource TextPrimary}"
+                           VerticalAlignment="Center"
+                           Margin="2,0,2,0">
+                    <TextBlock.RenderTransform>
+                        <!-- 视觉上移，与轮盘中心对齐 -->
+                        <TranslateTransform Y="-5"/>
+                    </TextBlock.RenderTransform>
+                </TextBlock>
 
-                    <!-- 秒钟 -->
-                    <StackPanel>
-                        <controls:NumberWheel x:Name="SecondWheel"
-                                              Minimum="0" Maximum="59"
-                                              Value="0"/>
-                        <TextBlock Text="秒"
-                                   FontFamily="Microsoft YaHei" FontSize="12"
-                                   Foreground="{DynamicResource TextSecondary}"
-                                   HorizontalAlignment="Center"
-                                   Margin="0,6,0,0"/>
-                    </StackPanel>
-                </StackPanel>
-            </Border>
+                <!-- 分钟 -->
+                <controls:NumberWheel x:Name="MinuteWheel"
+                                      Minimum="0" Maximum="59"
+                                      Value="0"/>
 
-            <!-- 按钮区 -->
+                <!-- 分隔符（紧贴两侧轮盘） -->
+                <TextBlock Text=":"
+                           FontFamily="Microsoft YaHei" FontSize="36"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource TextPrimary}"
+                           VerticalAlignment="Center"
+                           Margin="2,0,2,0">
+                    <TextBlock.RenderTransform>
+                        <!-- 视觉上移，与轮盘中心对齐 -->
+                        <TranslateTransform Y="-5"/>
+                    </TextBlock.RenderTransform>
+                </TextBlock>
+
+                <!-- 秒钟 -->
+                <controls:NumberWheel x:Name="SecondWheel"
+                                      Minimum="0" Maximum="59"
+                                      Value="0"
+                                      TextBias="-1"/>
+            </StackPanel>
+
+            <!-- 按钮区：紧贴轮盘下方，水平居中 -->
             <StackPanel Orientation="Horizontal"
                         HorizontalAlignment="Center"
-                        Margin="0,24,0,0">
+                        Margin="0,80,0,0">
                 <Button x:Name="ResetButton"
-                        Content="重置"
-                        Width="110" Height="36"
-                        FontFamily="Microsoft YaHei" FontSize="14"
-                        Foreground="{DynamicResource TextPrimary}"
-                        Background="{DynamicResource ControlBackground}"
-                        BorderBrush="{DynamicResource ControlBorder}"
-                        Cursor="Hand"
-                        Click="ResetButton_Click"/>
+                        Content="🔄"
+                        Width="45"
+                        Style="{StaticResource RoundToolButton}"
+                        Click="ResetButton_Click" Height="45"/>
                 <Button x:Name="StartButton"
-                        Content="开始倒计时"
-                        Width="140" Height="36"
-                        FontFamily="Microsoft YaHei" FontSize="14"
+                        Content="开始"
+                        Width="110"
                         FontWeight="Bold"
                         Foreground="White"
-                        Margin="16,0,0,0"
-                        Cursor="Hand"
-                        Click="StartButton_Click">
-                    <Button.Style>
-                        <Style TargetType="Button">
-                            <Setter Property="Background" Value="{DynamicResource SidebarAccent}"/>
-                            <Setter Property="BorderBrush" Value="{DynamicResource SidebarAccent}"/>
-                            <Setter Property="BorderThickness" Value="1"/>
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border x:Name="Bd"
-                                                Background="{TemplateBinding Background}"
-                                                BorderBrush="{TemplateBinding BorderBrush}"
-                                                BorderThickness="{TemplateBinding BorderThickness}"
-                                                CornerRadius="4">
-                                            <ContentPresenter HorizontalAlignment="Center"
-                                                              VerticalAlignment="Center"/>
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="Bd" Property="Opacity" Value="0.85"/>
-                                            </Trigger>
-                                            <Trigger Property="IsEnabled" Value="False">
-                                                <Setter TargetName="Bd" Property="Opacity" Value="0.5"/>
-                                            </Trigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                        </Style>
-                    </Button.Style>
-                </Button>
+                        Background="{DynamicResource SidebarAccent}"
+                        BorderBrush="{DynamicResource SidebarAccent}"
+                        Margin="80,0,0,0"
+                        Style="{StaticResource ToolButton}"
+                        Click="StartButton_Click"/>
             </StackPanel>
         </StackPanel>
     </Grid>
