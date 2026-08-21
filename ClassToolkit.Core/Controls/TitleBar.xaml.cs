@@ -29,17 +29,33 @@ public partial class TitleBar : UserControl
                     tb.TitleText.Text = tb.Title;
             }));
 
+    /// <summary>双击标题栏是否最大化/还原。对话框等禁止最大化的窗口可设为 false。</summary>
+    public bool DoubleClickMaximize
+    {
+        get => (bool)GetValue(DoubleClickMaximizeProperty);
+        set => SetValue(DoubleClickMaximizeProperty, value);
+    }
+
+    public static readonly DependencyProperty DoubleClickMaximizeProperty =
+        DependencyProperty.Register(nameof(DoubleClickMaximize), typeof(bool), typeof(TitleBar),
+            new PropertyMetadata(true));
+
     private void OnDrag(object sender, MouseButtonEventArgs e)
     {
         var win = Window.GetWindow(this);
         if (win == null) return;
 
         if (e.ClickCount == 2)
-            win.WindowState = win.WindowState == WindowState.Maximized
-                ? WindowState.Normal
-                : WindowState.Maximized;
-        else
-            win.DragMove();
+        {
+            // 双击只做最大化切换（可配置关闭），不参与拖拽
+            if (DoubleClickMaximize)
+                win.WindowState = win.WindowState == WindowState.Maximized
+                    ? WindowState.Normal
+                    : WindowState.Maximized;
+            return;
+        }
+
+        win.DragMove();
     }
 
     private void OnMinimize(object sender, RoutedEventArgs e)

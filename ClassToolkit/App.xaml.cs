@@ -1,4 +1,5 @@
 ﻿using ClassToolkit.Core.Services;
+using ClassToolkit.Core.Controls;
 using System.Windows;
 
 namespace ClassToolkit;
@@ -15,8 +16,7 @@ public partial class App : Application
         {
             _appMutex.Dispose();
             _appMutex = null;
-            MessageBox.Show("已有一个工具箱正在运行", "正在运行",
-                MessageBoxButton.OK, MessageBoxImage.Warning);
+            Dialog.Show("已有一个工具箱正在运行", title:"正在运行");
             Shutdown();
             return;
         }

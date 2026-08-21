@@ -1,4 +1,5 @@
 using ClassToolkit.Core.Services;
+using ClassToolkit.Core.Controls;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
@@ -453,7 +454,7 @@ public partial class MainWindow
         if (!System.IO.File.Exists(fullPath))
         {
             LogService.Warn($"启动程序未找到: {fullPath}");
-            MessageBox.Show($"未找到工具: {toolName}, 请检查路径是否正确");
+            Dialog.Show($"未找到工具: {toolName}, 请检查路径是否正确");
             return;
         }
 
@@ -464,7 +465,7 @@ public partial class MainWindow
         catch (Exception ex)
         {
             LogService.Error($"程序启动失败: 位于'{fullPath}'启动时发生 {ex.Message} 错误");
-            MessageBox.Show($"启动失败: {ex.Message}");
+            Dialog.Show($"启动失败: {ex.Message}");
         }
     }
 

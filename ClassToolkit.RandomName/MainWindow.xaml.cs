@@ -81,8 +81,7 @@ public partial class MainWindow : CustomWindow
     {
         if (Names == null || Names.Count == 0)
         {
-            MessageBox.Show("名单为空，无法点名。请检查 names.txt 文件。", "提示",
-                MessageBoxButton.OK, MessageBoxImage.Warning);
+            Dialog.Show("名单为空，无法点名。请检查 names.txt 文件。", title:"提示");
             return;
         }
 
@@ -165,18 +164,20 @@ public partial class MainWindow : CustomWindow
             if (Names.SequenceEqual(DefaultName))
             {
                 LogService.Info("使用默认名单");
-                MessageBox.Show("你当前使用的是默认名单！\n" +
+                Dialog.Show("你当前使用的是默认名单！\n" +
                     "这不会影响程序的使用，但请前往设置填写或导入本班名单\n" +
                     "你也可以在 程序目录/data/names.txt 文件中手动填写，确保每一行一个名字",
-                    "默认名单", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    "默认名单");
                 return;
             }
         }
         catch (Exception ex)
         {
             LogService.Error($"读取名单错误：{ex}");
-            MessageBox.Show($"读取名单发生致命错误：{ex}。\n 详情见 程序目录/data/log/running.log 日志文件", "错误",
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            Dialog.Show($"读取名单发生致命错误：{ex}。\n " +
+                $"详情见 程序目录/data/log/running.log 日志文件", 
+                title:"错误");
+
             Application.Current.Shutdown(1);
             return;
         }

@@ -49,8 +49,7 @@ public partial class MainWindow : CustomWindow
 
         if (time.TotalSeconds <= 0)
         {
-            MessageBox.Show("请设置至少 1 秒的倒计时。", "提示",
-                MessageBoxButton.OK, MessageBoxImage.Warning);
+            Dialog.Show("请设置至少 1 秒的倒计时。", title:"提示");
             return;
         }
 
@@ -143,5 +142,10 @@ public partial class MainWindow : CustomWindow
         }
 
         return best;
+    }
+
+    private void AddButton_Click(object sender, RoutedEventArgs e)
+    {
+
     }
 }

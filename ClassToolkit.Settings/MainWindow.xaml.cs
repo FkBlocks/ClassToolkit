@@ -182,7 +182,7 @@ public partial class MainWindow : CustomWindow
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"保存失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            Dialog.Show($"保存失败: {ex.Message}", title:"错误");
             return;
         }
 

@@ -95,8 +95,12 @@
                     VerticalAlignment="Top"
                     HorizontalAlignment="Center"
                     Margin="0,25,0,0">
+            
+            <!-- 快速计时卡片 -->
 
-            <!-- 轮盘区：直接铺在窗口背景上，无外框；整行都是滑动热区 -->
+
+
+                <!-- 轮盘区：直接铺在窗口背景上，无外框；整行都是滑动热区 -->
             <StackPanel x:Name="WheelArea"
                         Orientation="Horizontal"
                         Background="Transparent"
@@ -105,7 +109,8 @@
                         PreviewMouseMove="WheelArea_PreviewMouseMove"
                         PreviewMouseLeftButtonUp="WheelArea_PreviewMouseLeftButtonUp"
                         MouseWheel="WheelArea_MouseWheel"
-                        LostMouseCapture="WheelArea_LostMouseCapture">
+                        LostMouseCapture="WheelArea_LostMouseCapture"
+                        Margin="0,25,0,0">
 
                 <!-- 小时 -->
                 <controls:NumberWheel x:Name="HourWheel"
@@ -154,12 +159,17 @@
             <!-- 按钮区：紧贴轮盘下方，水平居中 -->
             <StackPanel Orientation="Horizontal"
                         HorizontalAlignment="Center"
-                        Margin="0,80,0,0">
+                        Margin="0,35,0,0">
                 <Button x:Name="ResetButton"
                         Content="🔄"
                         Width="45"
                         Style="{StaticResource RoundToolButton}"
-                        Click="ResetButton_Click" Height="45"/>
+                        Click="ResetButton_Click" Height="45" Margin="0, 0, 20, 0"/>
+                <Button x:Name="AddButton"
+                        Content="+"
+                        Width="45"
+                        Style="{StaticResource RoundToolButton}"
+                        Click="AddButton_Click" Height="45"/>
                 <Button x:Name="StartButton"
                         Content="开始"
                         Width="110"
@@ -167,7 +177,7 @@
                         Foreground="White"
                         Background="{DynamicResource SidebarAccent}"
                         BorderBrush="{DynamicResource SidebarAccent}"
-                        Margin="80,0,0,0"
+                        Margin="20,0,0,0"
                         Style="{StaticResource ToolButton}"
                         Click="StartButton_Click"/>
             </StackPanel>
