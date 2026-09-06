@@ -16,6 +16,19 @@
     <SolidColorBrush x:Key="ControlBorder"       Color="#D1D1D6"/>
     <SolidColorBrush x:Key="ControlBackground"   Color="#FFFFFF"/>
 
+    <!-- ═══ 全局颜色键 · 语义色（浅色默认值，ThemeService 按主题覆盖） ═══ -->
+    <SolidColorBrush x:Key="AccentForeground"    Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="AccentBorder"        Color="#3B6CD4"/>
+    <SolidColorBrush x:Key="SuccessColor"        Color="#38A169"/>
+    <SolidColorBrush x:Key="ErrorColor"          Color="#E53E3E"/>
+
+    <!-- ═══ 全局颜色键 · 悬浮球/悬浮菜单（浅色默认值） ═══ -->
+    <SolidColorBrush x:Key="FloatBallBackground" Color="#EFF0F0F7"/>
+    <SolidColorBrush x:Key="FloatBallStroke"     Color="#4A7CF7"/>
+    <SolidColorBrush x:Key="MenuBackground"      Color="#F5F5F7"/>
+    <SolidColorBrush x:Key="MenuForeground"      Color="#1D1D20"/>
+    <SolidColorBrush x:Key="MenuHover"           Color="#E3E3E6"/>
+
     <!-- ═══ 标题栏按钮统一样式 ═══ -->
     <Style x:Key="TitleBarButtonStyle" TargetType="Button">
         <Setter Property="Width" Value="46"/>

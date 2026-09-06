@@ -66,7 +66,7 @@ public static class DataFileInitializer
             ["CloseBehavior"]   = "直接退出",
             ["Theme"]           = "跟随系统",
             ["BallSize"]        = 60,
-            ["SeparatorColor"]  = "#D1D1D6",
+            // 主题色 AccentColor 不写默认值：null = 跟随主题默认强调色（用户自定义时才写入 hex）
             ["MenuFontSize"]    = 14,
             ["ToolsJsonPath"]   = "data/tools.json",
             ["ToolLaunchMode"]  = "由 Windows 决定（推荐）",

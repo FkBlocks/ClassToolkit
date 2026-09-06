@@ -188,7 +188,7 @@
             <Style.Triggers>
                 <Trigger Property="IsHighlighted" Value="True">
                     <Setter Property="Background" Value="{DynamicResource SidebarAccent}"/>
-                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="Foreground" Value="{DynamicResource AccentForeground}"/>
                 </Trigger>
                 <Trigger Property="IsSelected" Value="True">
                     <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
@@ -336,25 +336,29 @@
                                        FontFamily="Microsoft YaHei UI"
                                        Margin="0,0,0,16"/>
 
-                            <TextBlock Style="{StaticResource SettingLabelStyle}" Text="分隔线颜色"/>
-                            <TextBlock Style="{StaticResource SettingHintStyle}" Text="自定义设置页中分类栏与内容区之间竖线的颜色。"/>
-                            <!-- 简单的颜色预设按钮 -->
+                            <TextBlock Style="{StaticResource SettingLabelStyle}" Text="主题色"/>
+                            <TextBlock Style="{StaticResource SettingHintStyle}" Text="应用的主强调色，全局作用于按钮、选中项、标题栏等所有界面元素。跟随主题选项使用当前主题的默认强调色。"/>
+                            <!-- 主题色预设按钮：第一个色块为空 Tag 表示"跟随主题" -->
                             <StackPanel Orientation="Horizontal" Margin="0,2,0,12">
-                                <Border Width="28" Height="28" CornerRadius="14" Background="#D1D1D6"
-                                        Cursor="Hand" ToolTip="浅灰（默认）"
-                                        MouseLeftButtonDown="SeparatorColor_Click" Tag="#D1D1D6"/>
+                                <Border Width="28" Height="28" CornerRadius="14"
+                                        Background="{DynamicResource SidebarAccent}"
+                                        Cursor="Hand" ToolTip="跟随主题（默认）"
+                                        MouseLeftButtonDown="AccentColor_Click" Tag=""/>
                                 <Border Width="28" Height="28" CornerRadius="14" Background="#4A7CF7"
                                         Cursor="Hand" ToolTip="蓝色"
-                                        MouseLeftButtonDown="SeparatorColor_Click" Tag="#4A7CF7"/>
+                                        MouseLeftButtonDown="AccentColor_Click" Tag="#4A7CF7"/>
                                 <Border Width="28" Height="28" CornerRadius="14" Background="#E53E3E"
                                         Cursor="Hand" ToolTip="红色"
-                                        MouseLeftButtonDown="SeparatorColor_Click" Tag="#E53E3E"/>
+                                        MouseLeftButtonDown="AccentColor_Click" Tag="#E53E3E"/>
                                 <Border Width="28" Height="28" CornerRadius="14" Background="#38A169"
                                         Cursor="Hand" ToolTip="绿色"
-                                        MouseLeftButtonDown="SeparatorColor_Click" Tag="#38A169"/>
+                                        MouseLeftButtonDown="AccentColor_Click" Tag="#38A169"/>
+                                <Border Width="28" Height="28" CornerRadius="14" Background="#805AD5"
+                                        Cursor="Hand" ToolTip="紫色"
+                                        MouseLeftButtonDown="AccentColor_Click" Tag="#805AD5"/>
                                 <Border Width="28" Height="28" CornerRadius="14" Background="#1D1D20"
                                         Cursor="Hand" ToolTip="黑色"
-                                        MouseLeftButtonDown="SeparatorColor_Click" Tag="#1D1D20"/>
+                                        MouseLeftButtonDown="AccentColor_Click" Tag="#1D1D20"/>
                             </StackPanel>
 
                             <TextBlock Style="{StaticResource SettingLabelStyle}" Text="菜单字体大小"/>
@@ -398,9 +402,9 @@
 
                             <!-- 应用图标占位 -->
                             <Border Width="64" Height="64" CornerRadius="16"
-                                    Background="#4A7CF7" Margin="0,8,0,16">
+                                    Background="{DynamicResource SidebarAccent}" Margin="0,8,0,16">
                                 <TextBlock Text="CT"
-                                           Foreground="White" FontSize="24"
+                                           Foreground="{DynamicResource AccentForeground}" FontSize="24"
                                            FontWeight="Bold"
                                            FontFamily="Microsoft YaHei UI"
                                            HorizontalAlignment="Center"
@@ -441,7 +445,7 @@
                                Text="✓ 设置已保存"
                                FontSize="13"
                                FontFamily="Microsoft YaHei UI"
-                               Foreground="#38A169"
+                               Foreground="{DynamicResource SuccessColor}"
                                VerticalAlignment="Center"
                                Margin="0,0,16,0"
                                Visibility="Collapsed"/>
@@ -450,9 +454,9 @@
                             Width="100" Height="34"
                             FontSize="13.5"
                             FontFamily="Microsoft YaHei UI"
-                            Foreground="White"
-                            Background="#4A7CF7"
-                            BorderBrush="#3B6CD4"
+                            Foreground="{DynamicResource AccentForeground}"
+                            Background="{DynamicResource SidebarAccent}"
+                            BorderBrush="{DynamicResource AccentBorder}"
                             BorderThickness="1"
                             Cursor="Hand"
                             Click="ApplySettings_Click"/>

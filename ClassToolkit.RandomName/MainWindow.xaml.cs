@@ -1,4 +1,4 @@
-﻿using ClassToolkit.Core.Controls;
+using ClassToolkit.Core.Controls;
 using ClassToolkit.Core.Services;
 using System.IO;
 using System.Text;
@@ -184,7 +184,7 @@ public partial class MainWindow : CustomWindow
     }
 
     /// <summary>
-    /// 初始化点名模式切换控件，从标题栏颜色软编码提取饱和强调色
+    /// 初始化点名模式切换控件，强调色直接用主题的 SidebarAccent 键
     /// </summary>
     private void InitPickMode()
     {
@@ -194,77 +194,10 @@ public partial class MainWindow : CustomWindow
     }
 
     /// <summary>
-    /// 从 TitleBarBackground 资源色提取色相，拉高饱和度与亮度作为选中强调色
+    /// 从主题资源获取强调色（无需再自行推导色相/饱和度）
     /// </summary>
-    private SolidColorBrush CreateAccentBrush()
-    {
-        var titleBarBrush = (SolidColorBrush)Application.Current.FindResource("TitleBarBackground");
-        Color titleBarColor = titleBarBrush.Color;
-        Color saturated = BoostSaturation(titleBarColor);
-        return new SolidColorBrush(saturated);
-    }
-
-    /// <summary>
-    /// RGB → HSL → 饱和度和亮度调节 → RGB，返回高饱和的强调色
-    /// </summary>
-    private static Color BoostSaturation(Color color)
-    {
-        double r = color.R / 255.0;
-        double g = color.G / 255.0;
-        double b = color.B / 255.0;
-
-        double max = Math.Max(r, Math.Max(g, b));
-        double min = Math.Min(r, Math.Min(g, b));
-        double l = (max + min) / 2.0;
-
-        double h = 0, s = 0;
-        double d = max - min;
-
-        if (d > 0.0001)
-        {
-            s = l > 0.5 ? d / (2.0 - max - min) : d / (max + min);
-
-            if (Math.Abs(max - r) < 0.0001)
-                h = ((g - b) / d + (g < b ? 6 : 0)) / 6.0;
-            else if (Math.Abs(max - g) < 0.0001)
-                h = ((b - r) / d + 2) / 6.0;
-            else
-                h = ((r - g) / d + 4) / 6.0;
-        }
-
-        // 拉高饱和度到 0.78，得到鲜明但不刺眼的强调色
-        s = 0.78;
-
-        // 保留来源明度关系：浅色标题栏 → 较亮的强调色，深色标题栏 → 较深的强调色
-        // 同时保证白字对比度（L ≤ 0.52 即可通过 WCAG AA）
-        if (l > 0.5)
-            l = 0.50;  // 浅色主题：明快的中等蓝色
-        else
-            l = 0.38;  // 深色主题：浓郁的深蓝/靛色
-
-        return HslToRgb(h, s, l);
-    }
-
-    private static Color HslToRgb(double h, double s, double l)
-    {
-        double q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-        double p = 2 * l - q;
-
-        return Color.FromRgb(
-            (byte)Math.Round(HueToRgb(p, q, h + 1.0 / 3.0) * 255),
-            (byte)Math.Round(HueToRgb(p, q, h) * 255),
-            (byte)Math.Round(HueToRgb(p, q, h - 1.0 / 3.0) * 255));
-    }
-
-    private static double HueToRgb(double p, double q, double t)
-    {
-        if (t < 0) t += 1;
-        if (t > 1) t -= 1;
-        if (t < 1.0 / 6.0) return p + (q - p) * 6 * t;
-        if (t < 1.0 / 2.0) return q;
-        if (t < 2.0 / 3.0) return p + (q - p) * (2.0 / 3.0 - t) * 6;
-        return p;
-    }
+    private SolidColorBrush CreateAccentBrush() =>
+        (SolidColorBrush)ThemeService.GetBrush(ThemeService.Keys.SidebarAccent);
 
     /// <summary>
     /// 模式切换按钮点击
@@ -284,19 +217,20 @@ public partial class MainWindow : CustomWindow
     /// </summary>
     private void ApplyPickModeStyle()
     {
-        var normalFg = (Brush)Application.Current.FindResource("TextPrimary");
+        var normalFg = ThemeService.GetBrush(ThemeService.Keys.TextPrimary);
+        var accentFg = ThemeService.GetBrush(ThemeService.Keys.AccentForeground);
 
         if (_pickMode == PickMode.Name)
         {
             BtnPickNameBorder.Background = _accentBrush;
-            BtnPickName.Foreground = Brushes.White;
+            BtnPickName.Foreground = accentFg;
             BtnPickIdBorder.Background = Brushes.Transparent;
             BtnPickId.Foreground = normalFg;
         }
         else
         {
             BtnPickIdBorder.Background = _accentBrush;
-            BtnPickId.Foreground = Brushes.White;
+            BtnPickId.Foreground = accentFg;
             BtnPickNameBorder.Background = Brushes.Transparent;
             BtnPickName.Foreground = normalFg;
         }

@@ -1,4 +1,4 @@
-﻿using ClassToolkit.Core.Services;
+using ClassToolkit.Core.Services;
 using ClassToolkit.Core.Controls;
 using System.Windows;
 
@@ -10,6 +10,9 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        // 先应用主题，保证多开提示对话框等窗口也有正确配色
+        ThemeBootstrap.Initialize();
+
         _appMutex = new Mutex(true, @"Local\ClassToolkit.SingleInstance", out bool createdNew);
         
         if (!createdNew)

@@ -1,4 +1,5 @@
 using ClassToolkit.Core.Controls;
+using ClassToolkit.Core.Services;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
@@ -34,6 +35,7 @@ public class ResultWindow : CustomWindow
         var textFg = (Brush)Application.Current.FindResource("TextPrimary");
         var separatorBrush = (Brush)Application.Current.FindResource("SeparatorColor");
         var controlBorder = (Brush)Application.Current.FindResource("ControlBorder");
+        var accentFg = ThemeService.GetBrush(ThemeService.Keys.AccentForeground);
 
         Background = contentBg;
 
@@ -85,6 +87,7 @@ public class ResultWindow : CustomWindow
                 text: items[i],
                 isLast: i == items.Count - 1,
                 accentBrush,
+                accentFg,
                 textFg,
                 separatorBrush));
         }
@@ -128,7 +131,7 @@ public class ResultWindow : CustomWindow
     /// </summary>
     private static Border BuildItemRow(
         int index, string text, bool isLast,
-        Brush accentBrush, Brush textFg, Brush separatorBrush)
+        Brush accentBrush, Brush accentFg, Brush textFg, Brush separatorBrush)
     {
         var rowGrid = new Grid
         {
@@ -153,7 +156,7 @@ public class ResultWindow : CustomWindow
                 FontFamily = new FontFamily("Microsoft YaHei"),
                 FontSize = 12,
                 FontWeight = FontWeights.Bold,
-                Foreground = Brushes.White,
+                Foreground = accentFg,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
             }

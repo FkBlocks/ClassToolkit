@@ -174,7 +174,7 @@
                         Content="开始"
                         Width="110"
                         FontWeight="Bold"
-                        Foreground="White"
+                        Foreground="{DynamicResource AccentForeground}"
                         Background="{DynamicResource SidebarAccent}"
                         BorderBrush="{DynamicResource SidebarAccent}"
                         Margin="20,0,0,0"

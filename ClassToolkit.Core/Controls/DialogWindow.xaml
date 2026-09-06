@@ -54,7 +54,7 @@
         <!-- ═══ 主按钮（确定）：主题强调色 ═══ -->
         <Style x:Key="PrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource DialogButtonStyle}">
             <Setter Property="Background" Value="{DynamicResource SidebarAccent}"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Foreground" Value="{DynamicResource AccentForeground}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource SidebarAccent}"/>
         </Style>
     </local:CustomWindow.Resources>

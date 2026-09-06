@@ -1,3 +1,4 @@
+using ClassToolkit.Core.Services;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
@@ -130,9 +131,19 @@ public class NumberWheel : FrameworkElement
 
         MouseWheel += OnMouseWheel;
 
+        // 主题/主题色变化时刷新轮盘强调色（Unloaded 时反订阅）
+        ThemeBootstrap.ThemeApplied += OnThemeApplied;
+
         Loaded += (_, _) => InvalidateVisual();
-        Unloaded += (_, _) => StopAnimation();
+        Unloaded += (_, _) =>
+        {
+            StopAnimation();
+            ThemeBootstrap.ThemeApplied -= OnThemeApplied;
+        };
     }
+
+    /// <summary>主题重新应用后强制重绘，让中心数字的强调色实时跟随。</summary>
+    private void OnThemeApplied() => InvalidateVisual();
 
     /// <summary>挂载渲染帧回调开始动画（幂等）。</summary>
     private void StartAnimation()
@@ -405,31 +416,22 @@ public class NumberWheel : FrameworkElement
     }
 
     /// <summary>
-    /// 从主题资源获取强调色，失败回退硬编码值。
+    /// 从主题资源获取强调色（GetBrush 内部自带色板回退）。
     /// </summary>
-    private Brush GetAccentBrush()
-    {
-        try { return (Brush)Application.Current.FindResource("SidebarAccent"); }
-        catch { return new SolidColorBrush(Color.FromRgb(0x4A, 0x7C, 0xF7)); }
-    }
+    private Brush GetAccentBrush() =>
+        ThemeService.GetBrush(ThemeService.Keys.SidebarAccent);
 
     /// <summary>
-    /// 从主题资源获取主文字色，失败回退黑色。
+    /// 从主题资源获取主文字色。
     /// </summary>
-    private Brush GetTextBrush()
-    {
-        try { return (Brush)Application.Current.FindResource("TextPrimary"); }
-        catch { return Brushes.Black; }
-    }
+    private Brush GetTextBrush() =>
+        ThemeService.GetBrush(ThemeService.Keys.TextPrimary);
 
     /// <summary>
-    /// 从主题资源获取次要文字色，失败回退灰色。
+    /// 从主题资源获取次要文字色。
     /// </summary>
-    private Brush GetDimBrush()
-    {
-        try { return (Brush)Application.Current.FindResource("TextSecondary"); }
-        catch { return new SolidColorBrush(Color.FromRgb(0x99, 0x99, 0x99)); }
-    }
+    private Brush GetDimBrush() =>
+        ThemeService.GetBrush(ThemeService.Keys.TextSecondary);
 
     /// <summary>
     /// 将文字色按 t(0~1) 渐变成灰色，用于远距离数字的灰度阶。

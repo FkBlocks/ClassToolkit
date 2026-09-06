@@ -15,6 +15,9 @@ public partial class MainWindow : CustomWindow
 
     private bool _initializing = true;
 
+    /// <summary>用户自定义主题色（hex 或 null=跟随主题默认）。</summary>
+    private string? _accentOverride;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -57,7 +60,11 @@ public partial class MainWindow : CustomWindow
         SetComboBoxByContent(CmbTheme, GetStr(_settings, "Theme", "跟随系统"));
         SldBallSize.Value = GetInt(_settings, "BallSize", 60);
         TxtBallSizeValue.Text = $"当前: {(int)SldBallSize.Value} px";
-        ApplySeparatorColor(GetStr(_settings, "SeparatorColor", "#D1D1D6"));
+
+        // 主题色：config 无值 → 跟随主题；有值 → 作为全局强调色生效
+        string accent = GetStr(_settings, "AccentColor", "");
+        _accentOverride = string.IsNullOrEmpty(accent) ? null : accent;
+
         TxtMenuFontSize.Text = GetInt(_settings, "MenuFontSize", 14).ToString();
 
         // ── 工具 ──
@@ -65,8 +72,8 @@ public partial class MainWindow : CustomWindow
         SetComboBoxByContent(CmbToolLaunchMode, GetStr(_settings, "ToolLaunchMode", "由 Windows 决定（推荐）"));
         TxtToolsDirectory.Text = GetStr(_settings, "ToolsDirectory", "Tools");
 
-        // ── 主题应用（最后执行，覆盖所有颜色）──
-        ThemeService.Apply(GetStr(_settings, "Theme", "跟随系统"));
+        // ── 主题应用（最后执行，覆盖所有颜色；含用户自定义主题色）──
+        ApplyThemeWithOverrides();
     }
 
     /// <summary>
@@ -83,7 +90,7 @@ public partial class MainWindow : CustomWindow
         // ── 外观 ──
         _settings["Theme"] = GetComboBoxContent(CmbTheme);
         _settings["BallSize"] = (int)SldBallSize.Value;
-        _settings["SeparatorColor"] = GetCurrentSeparatorColorHex();
+        _settings["AccentColor"] = _accentOverride;   // null → 移除键 = 跟随主题
         _settings["MenuFontSize"] = int.TryParse(TxtMenuFontSize.Text, out var fs) ? fs : 14;
 
         // ── 工具 ──
@@ -121,11 +128,7 @@ public partial class MainWindow : CustomWindow
     private void OnThemeChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_initializing) return;  // 构造函数阶段跳过，避免窗口未初始化时崩
-        string theme = GetComboBoxContent(CmbTheme);
-        ThemeService.Apply(theme);
-
-        // 同步更新分隔线（它不受 DynamicResource 直接绑定）
-        ApplySeparatorColor(GetCurrentSeparatorColorHex());
+        ApplyThemeWithOverrides();
     }
 
     private void OnBallSizeChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -133,24 +136,28 @@ public partial class MainWindow : CustomWindow
         TxtBallSizeValue.Text = $"当前: {(int)e.NewValue} px";
     }
 
-    private void SeparatorColor_Click(object sender, MouseButtonEventArgs e)
+    private void AccentColor_Click(object sender, MouseButtonEventArgs e)
     {
-        if (sender is Border border && border.Tag is string colorHex)
-            ApplySeparatorColor(colorHex);
+        if (sender is not Border border || border.Tag is not string tag)
+            return;
+
+        // Tag 为空串 = "跟随主题"（清除自定义主题色）
+        _accentOverride = string.IsNullOrEmpty(tag) ? null : tag;
+        ApplyThemeWithOverrides();
     }
 
-    private void ApplySeparatorColor(string colorHex)
+    /// <summary>
+    /// 应用当前主题，并把用户自定义主题色作为全局强调色一并写入。
+    /// 按钮/选中项/标题栏等所有窗口的 DynamicResource 自动跟随。
+    /// </summary>
+    private void ApplyThemeWithOverrides()
     {
-        var brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(colorHex));
-        brush.Freeze();
-        SepLine.Background = brush;
-    }
+        var overrides = new Dictionary<string, Color>();
+        if (!string.IsNullOrEmpty(_accentOverride) &&
+            ColorConverter.ConvertFromString(_accentOverride) is Color c)
+            overrides = ThemeService.BuildAccentOverrides(GetComboBoxContent(CmbTheme), c);
 
-    private string GetCurrentSeparatorColorHex()
-    {
-        if (SepLine.Background is SolidColorBrush scb)
-            return $"#{scb.Color.R:X2}{scb.Color.G:X2}{scb.Color.B:X2}";
-        return "#D1D1D6";
+        ThemeService.Apply(GetComboBoxContent(CmbTheme), overrides);
     }
 
     // ═══════════════ ComboBox 辅助 ═══════════════

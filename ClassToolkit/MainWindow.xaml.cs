@@ -62,6 +62,8 @@ public partial class MainWindow
     private Popup _menuPopup = null!;
     /// <summary>菜单是否正在显示</summary>
     private bool _isMenuOpen;
+    /// <summary>Popup 菜单内容面板，主题变化时原地刷新颜色用</summary>
+    private Border? _menuPanel;
 
 
     public MainWindow()
@@ -69,8 +71,16 @@ public partial class MainWindow
         LogService.Init("ClassToolkit");  // 设置日志名称
         InitializeComponent();      // 加载 XAML 布局
         InitializeMenuPopup();      // 用代码构建 Popup 菜单
+        ThemeBootstrap.ThemeApplied += RefreshMenuTheme;  // 主题/主题色变化时刷新菜单
         this.Loaded += (_, _) => MakeSuperTopmost();  // 窗口加载完成后立即置顶
         LogService.Info("启动成功");
+    }
+
+    /// <summary>窗口关闭时反订阅，避免静态事件持有本窗口实例。</summary>
+    protected override void OnClosed(EventArgs e)
+    {
+        ThemeBootstrap.ThemeApplied -= RefreshMenuTheme;
+        base.OnClosed(e);
     }
 
     /// <summary>
@@ -109,20 +119,37 @@ public partial class MainWindow
         // "退出"固定在底部，toolPath 为 null
         stackPanel.Children.Add(CreateMenuItem("退出", null));
 
+        // Popup 内容位于独立窗口树中，DynamicResource 收不到资源变更通知，
+        // 因此直接取色板构建，并由 ThemeApplied 事件在主题变化时原地刷新（见 RefreshMenuTheme）
         var menuPanel = new Border
         {
-            Background = new SolidColorBrush(Color.FromRgb(22, 22, 22)),
+            Background = ThemeService.GetBrush(ThemeService.Keys.MenuBackground),
             CornerRadius = new CornerRadius(8),
             Padding = new Thickness(8),
             Child = stackPanel
         };
-
+        _menuPanel = menuPanel;
         _menuPopup.Child = menuPanel;
 
         // 动态计算 Popup 尺寸：工具数 + 1（退出按钮）
         int itemCount = tools.Count + 1;
         _menuPopup.Width = 130;
         _menuPopup.Height = itemCount * MenuItemHeight + 36; // 36 = Border(8×2) + StackPanel(10×2)
+    }
+
+    /// <summary>
+    /// 主题/主题色热重载时刷新 Popup 菜单颜色。
+    /// Popup 内容位于独立窗口树中，DynamicResource 收不到 Application 资源变更通知，
+    /// 所以直接原地重取色板刷一遍，保证菜单实时跟随主题。
+    /// </summary>
+    private void RefreshMenuTheme()
+    {
+        if (_menuPanel == null) return;
+        _menuPanel.Background = ThemeService.GetBrush(ThemeService.Keys.MenuBackground);
+        if (_menuPanel.Child is StackPanel sp)
+            foreach (var child in sp.Children)
+                if (child is Button btn)
+                    btn.Foreground = ThemeService.GetBrush(ThemeService.Keys.MenuForeground);
     }
 
     /// <summary>
@@ -161,7 +188,7 @@ public partial class MainWindow
             Height = 30,
             Margin = new Thickness(0, 5, 0, 5),
             Background = Brushes.Transparent,
-            Foreground = Brushes.White,
+            Foreground = ThemeService.GetBrush(ThemeService.Keys.MenuForeground),
             BorderBrush = Brushes.Transparent,
             Cursor = Cursors.Hand,
             HorizontalContentAlignment = HorizontalAlignment.Center,
@@ -169,6 +196,10 @@ public partial class MainWindow
             FontSize = 14,
             FontFamily = new FontFamily("Microsoft YaHei")
         };
+
+        // 悬停高亮：GetBrush 实时读取应用资源，主题变化后自动取最新值
+        btn.MouseEnter += (_, _) => btn.Background = ThemeService.GetBrush(ThemeService.Keys.MenuHover);
+        btn.MouseLeave += (_, _) => btn.Background = Brushes.Transparent;
 
         if (toolPath != null)
             btn.Click += (_, _) => OnToolClick(text, toolPath);
