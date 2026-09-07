@@ -36,6 +36,7 @@ _ReSharper*/
 # NuGet
 **/packages/*
 *.nupkg
+NuGet.Config
 
 # Others
 Thumbs.db
